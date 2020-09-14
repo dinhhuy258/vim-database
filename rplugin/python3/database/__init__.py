@@ -1,14 +1,14 @@
 import os
-from pynvim import Nvim, plugin, command
+from pynvim import Nvim, plugin, command, function
 from asyncio import AbstractEventLoop, Lock, run_coroutine_threadsafe
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Sequence
 
 from .nvim import init_nvim, get_global_var
 from .settings import load_settings
 from .logging import log, init_log
 from .executor_service import ExecutorService
 from .utils import create_folder_if_not_present
-from .database import new_connection, show_connections
+from .database import new_connection, show_connections, quit, select_connection
 
 
 @plugin
@@ -56,3 +56,11 @@ class DatabasePlugin(object):
     @command('VDShowConnections')
     def show_connections_command(self) -> None:
         self._run(show_connections)
+
+    @function('VimDatabase_quit')
+    def quit_function(self, args: Sequence[Any]) -> None:
+        self._run(quit)
+
+    @function('VimDatabase_select_connection')
+    def select_connection_function(self, args: Sequence[Any]) -> None:
+        self._run(select_connection)

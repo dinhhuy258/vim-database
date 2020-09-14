@@ -106,6 +106,14 @@ def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dic
     return window
 
 
+def get_current_cursor(window: Window) -> Tuple[int, int]:
+    return _nvim.api.win_get_cursor(window)
+
+
+def close_window(window: Window, force: bool) -> None:
+    _nvim.api.win_close(window, force)
+
+
 def set_buffer_in_window(window: Window, buffer: Buffer) -> None:
     _nvim.api.win_set_buf(window, buffer)
 

@@ -10,8 +10,10 @@ from .nvim import (
     get_buffer_option,
     create_buffer,
     create_window,
+    close_window,
     set_buffer_in_window,
     get_buffer_in_window,
+    get_current_cursor,
     WindowLayout,
 )
 
@@ -27,9 +29,9 @@ def _find_database_window_in_tab() -> Optional[Window]:
     return None
 
 
-def _open_database_window() -> Window:
+def _open_database_window(settings: Settings) -> Window:
     buffer = create_buffer(
-        dict(), {
+        settings.mappings, {
             'buftype': 'nofile',
             'bufhidden': 'hide',
             'swapfile': False,
@@ -56,12 +58,26 @@ def _buf_set_lines(buffer: Buffer, lines: list, modifiable: bool) -> Iterator[Tu
         yield "nvim_buf_set_option", (buffer, "modifiable", False)
 
 
-def open_database_window() -> Window:
+def open_database_window(settings: Settings) -> Window:
     window = _find_database_window_in_tab()
     if window is None:
-        window = _open_database_window()
+        window = _open_database_window(settings)
 
     return window
+
+
+def close_database_window() -> None:
+    window = _find_database_window_in_tab()
+    if window is not None:
+        close_window(window, True)
+
+
+def get_current_database_window_row() -> Optional[int]:
+    window = _find_database_window_in_tab()
+    if window is None:
+        return None
+    row, _ = get_current_cursor(window)
+    return row
 
 
 def render(window: Window, lines: list) -> None:
