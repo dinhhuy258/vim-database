@@ -8,7 +8,7 @@ from .settings import load_settings
 from .logging import log, init_log
 from .executor_service import ExecutorService
 from .utils import create_folder_if_not_present
-from .database import (new_connection)
+from .database import new_connection, show_connections
 
 
 @plugin
@@ -52,3 +52,7 @@ class DatabasePlugin(object):
     @command('VDNewConnection')
     def new_connection_command(self) -> None:
         self._run(new_connection)
+
+    @command('VDShowConnections')
+    def show_connections_command(self) -> None:
+        self._run(show_connections)

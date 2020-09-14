@@ -2,8 +2,10 @@ from typing import Optional
 from functools import partial
 from .settings import Settings
 from .logging import log
-from .connection import Connection, ConnectionType, store_connection
+from .connection import Connection, ConnectionType, store_connection, get_connections
 from .utils import is_file_exists, run_in_executor
+from .database_window import open_database_window, render
+from .ascii_table import ascii_table
 from .nvim import (
     async_call,
     confirm,
@@ -43,3 +45,13 @@ async def new_connection(settings: Settings) -> None:
         await run_in_executor(partial(store_connection, connection))
         log.info('[vim-database] Connection saved')
     return None
+
+
+async def show_connections(settings: Settings) -> None:
+    window = await async_call(open_database_window)
+    connections = await run_in_executor(get_connections)
+    connection_datas = []
+    connection_headers = ["Name", "Type", "Database"]
+    for connection in connections:
+        connection_datas.append([connection.name, connection.connection_type.to_string(), connection.database])
+    await async_call(partial(render, window, ascii_table(connection_headers, connection_datas)))
