@@ -8,7 +8,14 @@ from .settings import load_settings
 from .logging import log, init_log
 from .executor_service import ExecutorService
 from .utils import create_folder_if_not_present
-from .database import new_connection, show_connections, quit, select_connection
+from .database import (
+    new_connection,
+    show_connections,
+    quit,
+    delete,
+    new,
+    select_connection,
+)
 
 
 @plugin
@@ -64,3 +71,11 @@ class DatabasePlugin(object):
     @function('VimDatabase_select_connection')
     def select_connection_function(self, args: Sequence[Any]) -> None:
         self._run(select_connection)
+
+    @function('VimDatabase_delete')
+    def delete_function(self, args: Sequence[Any]) -> None:
+        self._run(delete)
+
+    @function('VimDatabase_new')
+    def new_function(self, args: Sequence[Any]) -> None:
+        self._run(new)

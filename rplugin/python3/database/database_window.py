@@ -80,6 +80,10 @@ def get_current_database_window_row() -> Optional[int]:
     return row
 
 
+def is_database_window_open() -> bool:
+    return _find_database_window_in_tab() is not None
+
+
 def render(window: Window, lines: list) -> None:
     buffer: Buffer = get_buffer_in_window(window)
     instruction = _buf_set_lines(buffer, lines, False)

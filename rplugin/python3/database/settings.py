@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from typing import Dict
 
 _DEFAULT_DATABASE_MAPPINGS = {
-    'quit': ['q'],
-    'select_connection': ['s'],
+    "quit": ["q"],
+    "delete": ["d"],
+    "new": ["n"],
+    "select_connection": ["s"],
 }
 
 

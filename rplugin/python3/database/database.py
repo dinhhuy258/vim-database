@@ -4,10 +4,23 @@ from dataclasses import dataclass
 from enum import Enum
 from .settings import Settings
 from .logging import log
-from .connection import Connection, ConnectionType, store_connection, get_connections, get_default_connection
 from .utils import is_file_exists, run_in_executor
-from .database_window import open_database_window, close_database_window, get_current_database_window_row, render
 from .ascii_table import ascii_table
+from .connection import (
+    Connection,
+    ConnectionType,
+    store_connection,
+    delete_connection,
+    get_connections,
+    get_default_connection,
+)
+from .database_window import (
+    open_database_window,
+    close_database_window,
+    is_database_window_open,
+    get_current_database_window_row,
+    render,
+)
 from .nvim import (
     async_call,
     confirm,
@@ -56,11 +69,26 @@ def _new_connection() -> Optional[Connection]:
     return None
 
 
+def _get_connection_index() -> Optional[int]:
+    row = get_current_database_window_row()
+    connections_size = len(state.connections)
+    # Minus 4 for header of the table
+    connection_index = row - 4
+    if connection_index < 0 or connection_index >= len(state.connections):
+        return None
+
+    return connection_index
+
+
 async def new_connection(settings: Settings) -> None:
     connection = await async_call(_new_connection)
     if connection is not None:
         await run_in_executor(partial(store_connection, connection))
-        log.info('[vim-database] Connection saved')
+        # Update connections table
+        is_window_open = await async_call(is_database_window_open)
+        if is_window_open and state.mode == Mode.CONNECTION:
+            await show_connections(settings)
+        log.info('[vim-database] Connection created')
     return None
 
 
@@ -94,16 +122,41 @@ async def quit(settings: Settings) -> None:
     await async_call(close_database_window)
 
 
+async def new(settings: Settings) -> None:
+    if state.mode != Mode.CONNECTION:
+        return
+
+    await new_connection(settings)
+
+
+async def delete(settings: Settings) -> None:
+    if state.mode != Mode.CONNECTION or len(state.connections) == 0:
+        return
+    connection_index = await async_call(_get_connection_index)
+    if connection_index is None:
+        return
+
+    connection = state.connections[connection_index]
+    ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
+    if ans == False:
+        return
+
+    await run_in_executor(partial(delete_connection, connection))
+    if connection.name == state.selected_connection.name:
+        state.selected_connection = None
+
+    # Update connections table
+    await show_connections(settings)
+
+
 async def select_connection(settings: Settings) -> None:
     if state.mode != Mode.CONNECTION or len(state.connections) == 0:
         return
 
-    row = await async_call(get_current_database_window_row)
-    connections_size = len(state.connections)
-    # Minus 4 for header of the table
-    connection_index = row - 4
-    if connection_index < 0 or connection_index >= len(state.connections):
+    connection_index = await async_call(_get_connection_index)
+    if connection_index is None:
         return
+
     state.selected_connection = state.connections[connection_index]
 
     # Update connections table
