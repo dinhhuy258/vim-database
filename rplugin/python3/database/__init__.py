@@ -11,6 +11,7 @@ from .utils import create_folder_if_not_present
 from .database import (
     new_connection,
     show_connections,
+    show_databases,
     quit,
     delete,
     new,
@@ -63,6 +64,10 @@ class DatabasePlugin(object):
     @command('VDShowConnections')
     def show_connections_command(self) -> None:
         self._run(show_connections)
+
+    @command('VDShowDatabases')
+    def show_databases_command(self) -> None:
+        self._run(show_databases)
 
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:

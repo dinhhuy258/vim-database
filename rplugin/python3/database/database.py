@@ -6,6 +6,8 @@ from .settings import Settings
 from .logging import log
 from .utils import is_file_exists, run_in_executor
 from .ascii_table import ascii_table
+from .sql_client import SqlClient
+from .sql_client_factory import SqlClientFactory
 from .connection import (
     Connection,
     ConnectionType,
@@ -31,6 +33,7 @@ from .nvim import (
 class Mode(Enum):
     UNKNOWN = 0
     CONNECTION = 1
+    DATABASE = 1
 
 
 @dataclass(frozen=False)
@@ -38,9 +41,11 @@ class State:
     mode: Mode
     connections: list
     selected_connection: Optional[Connection]
+    databases: list
+    selected_database: Optional[str]
 
 
-state: State = State(mode=Mode.UNKNOWN, connections=list(), selected_connection=None)
+state: State = State(mode=Mode.UNKNOWN, connections=list(), selected_connection=None, databases=list(), selected_database=None)
 
 
 def _new_sqlite_connection() -> Optional[Connection]:
@@ -97,10 +102,10 @@ async def show_connections(settings: Settings) -> None:
     connection_headers = ["Name", "Type", "Database"]
 
     state.mode = Mode.CONNECTION
-    connections = await run_in_executor(get_connections)
-    state.connections = list(connections)
 
     def get_connection_datas():
+        connections = get_connections()
+        state.connections = list(connections)
         if state.selected_connection is None:
             state.selected_connection = get_default_connection()
         connection_datas = []
@@ -116,6 +121,38 @@ async def show_connections(settings: Settings) -> None:
     connection_datas = await run_in_executor(get_connection_datas)
 
     await async_call(partial(render, window, ascii_table(connection_headers, connection_datas)))
+
+
+async def show_databases(settings: Settings) -> None:
+    if state.selected_connection is None:
+        state.selected_connection = await run_in_executor(get_default_connection)
+
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    state.mode = Mode.DATABASE
+    if state.selected_database is None:
+        state.selected_database = state.selected_connection.database
+
+    window = await async_call(partial(open_database_window, settings))
+    database_headers = ["Database"]
+
+    def get_database_datas():
+        database_datas = []
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        databases = sql_client.get_databases()
+        state.databases = databases
+        for database in databases:
+            if state.selected_database == database:
+                database_datas.append([database + " (*)"])
+            else:
+                database_datas.append([database])
+        return database_datas
+
+    database_datas = await run_in_executor(get_database_datas)
+
+    await async_call(partial(render, window, ascii_table(database_headers, database_datas)))
 
 
 async def quit(settings: Settings) -> None:

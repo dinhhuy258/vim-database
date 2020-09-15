@@ -1,10 +1,18 @@
 import os
+import subprocess
 from os import path
+from dataclasses import dataclass
 from asyncio import get_running_loop
 from functools import partial
 from typing import Any, Callable, TypeVar
 
 T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    error: bool
+    data: str
 
 
 async def run_in_executor(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
@@ -23,3 +31,11 @@ def is_folder_exists(folder_path: str) -> bool:
 def create_folder_if_not_present(folder_path: str) -> None:
     if not is_folder_exists(folder_path):
         os.makedirs(folder_path)
+
+
+def run_command(command: list) -> CommandResult:
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        return CommandResult(error=False, data=result.stdout.rstrip())
+
+    return CommandResult(error=True, data=result.stderr.rstrip())
