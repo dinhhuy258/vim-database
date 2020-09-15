@@ -33,7 +33,8 @@ from .nvim import (
 class Mode(Enum):
     UNKNOWN = 0
     CONNECTION = 1
-    DATABASE = 1
+    DATABASE = 2
+    TABLE = 3
 
 
 @dataclass(frozen=False)
@@ -43,9 +44,15 @@ class State:
     selected_connection: Optional[Connection]
     databases: list
     selected_database: Optional[str]
+    tables: list
 
 
-state: State = State(mode=Mode.UNKNOWN, connections=list(), selected_connection=None, databases=list(), selected_database=None)
+state: State = State(mode=Mode.UNKNOWN,
+                     connections=list(),
+                     selected_connection=None,
+                     databases=list(),
+                     selected_database=None,
+                     tables=list())
 
 
 def _new_sqlite_connection() -> Optional[Connection]:
@@ -153,6 +160,39 @@ async def show_databases(settings: Settings) -> None:
     database_datas = await run_in_executor(get_database_datas)
 
     await async_call(partial(render, window, ascii_table(database_headers, database_datas)))
+
+
+async def show_tables(settings: Settings) -> None:
+    if state.selected_connection is None:
+        state.selected_connection = await run_in_executor(get_default_connection)
+
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    if state.selected_database is None:
+        state.selected_database = state.selected_connection.database
+
+    if state.selected_database is None:
+        log.info("[vim-database] No database found")
+        return
+
+    state.mode = Mode.TABLE
+    window = await async_call(partial(open_database_window, settings))
+    table_headers = ["Table"]
+
+    def get_table_datas():
+        table_datas = []
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        tables = sql_client.get_tables(state.selected_database)
+        state.tables = tables
+        for table in tables:
+            table_datas.append([table])
+        return table_datas
+
+    table_datas = await run_in_executor(get_table_datas)
+
+    await async_call(partial(render, window, ascii_table(table_headers, table_datas)))
 
 
 async def quit(settings: Settings) -> None:

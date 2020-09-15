@@ -10,3 +10,7 @@ class SqlClient(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_databases(self) -> list:
         pass
+
+    @abc.abstractmethod
+    def get_tables(self, database: str) -> list:
+        pass

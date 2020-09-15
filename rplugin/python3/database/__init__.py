@@ -12,6 +12,7 @@ from .database import (
     new_connection,
     show_connections,
     show_databases,
+    show_tables,
     quit,
     delete,
     new,
@@ -68,6 +69,10 @@ class DatabasePlugin(object):
     @command('VDShowDatabases')
     def show_databases_command(self) -> None:
         self._run(show_databases)
+
+    @command('VDShowTables')
+    def show_tables_command(self) -> None:
+        self._run(show_tables)
 
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:

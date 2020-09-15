@@ -11,5 +11,11 @@ class SqliteClient(SqlClient):
     def get_databases(self) -> list:
         result = run_command(["sqlite3", self.connection.database, ".database"])
         if result.error:
-            return list('erorr')
+            return list()
         return list([result.data.split()[-1]])
+
+    def get_tables(self, database: str) -> list:
+        result = run_command(["sqlite3", database, ".table"])
+        if result.error:
+            return list()
+        return result.data.split()
