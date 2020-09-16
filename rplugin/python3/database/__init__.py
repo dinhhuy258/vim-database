@@ -9,7 +9,6 @@ from .logging import log, init_log
 from .executor_service import ExecutorService
 from .utils import create_folder_if_not_present
 from .database import (
-    new_connection,
     show_connections,
     show_databases,
     show_tables,
@@ -58,9 +57,6 @@ class DatabasePlugin(object):
 
         self._submit(run())
 
-    @command('VDNewConnection')
-    def new_connection_command(self) -> None:
-        self._run(new_connection)
 
     @command('VDShowConnections')
     def show_connections_command(self) -> None:
@@ -77,6 +73,18 @@ class DatabasePlugin(object):
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:
         self._run(quit)
+
+    @function('VimDatabase_show_connections')
+    def show_connections_function(self, args: Sequence[Any]) -> None:
+        self._run(show_connections)
+
+    @function('VimDatabase_show_databases')
+    def show_databases_function(self, args: Sequence[Any]) -> None:
+        self._run(show_databases)
+
+    @function('VimDatabase_show_tables')
+    def show_tables_function(self, args: Sequence[Any]) -> None:
+        self._run(show_tables)
 
     @function('VimDatabase_select_connection')
     def select_connection_function(self, args: Sequence[Any]) -> None:

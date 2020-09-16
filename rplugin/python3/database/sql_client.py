@@ -14,3 +14,7 @@ class SqlClient(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_tables(self, database: str) -> list:
         pass
+
+    @abc.abstractmethod
+    def delete_table(self, database: str, table: str) -> None:
+        pass

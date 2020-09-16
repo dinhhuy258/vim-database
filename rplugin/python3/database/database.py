@@ -81,6 +81,44 @@ def _new_connection() -> Optional[Connection]:
     return None
 
 
+async def _delete_connection(settings: Settings) -> None:
+    connection_index = await async_call(_get_connection_index)
+    if connection_index is None:
+        return
+
+    connection = state.connections[connection_index]
+    ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
+    if ans == False:
+        return
+
+    await run_in_executor(partial(delete_connection, connection))
+    if connection.name == state.selected_connection.name:
+        state.selected_connection = None
+
+    # Update connections table
+    await show_connections(settings)
+
+
+async def _delete_table(settings: Settings) -> None:
+    table_index = await async_call(_get_table_index)
+    if table_index is None:
+        return
+
+    table = state.tables[table_index]
+    ans = await async_call(partial(confirm, "Do you want to delete table " + table + "?"))
+    if ans == False:
+        return
+
+    def delete_table():
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        sql_client.delete_table(state.selected_database, table)
+
+    await run_in_executor(delete_table)
+
+    # Update tables
+    await show_tables(settings)
+
+
 def _get_connection_index() -> Optional[int]:
     row = get_current_database_window_row()
     connections_size = len(state.connections)
@@ -90,6 +128,17 @@ def _get_connection_index() -> Optional[int]:
         return None
 
     return connection_index
+
+
+def _get_table_index() -> Optional[int]:
+    row = get_current_database_window_row()
+    table_size = len(state.tables)
+    # Minus 4 for header of the table
+    table_index = row - 4
+    if table_index < 0 or table_index >= len(state.tables):
+        return None
+
+    return table_index
 
 
 async def new_connection(settings: Settings) -> None:
@@ -207,23 +256,10 @@ async def new(settings: Settings) -> None:
 
 
 async def delete(settings: Settings) -> None:
-    if state.mode != Mode.CONNECTION or len(state.connections) == 0:
-        return
-    connection_index = await async_call(_get_connection_index)
-    if connection_index is None:
-        return
-
-    connection = state.connections[connection_index]
-    ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
-    if ans == False:
-        return
-
-    await run_in_executor(partial(delete_connection, connection))
-    if connection.name == state.selected_connection.name:
-        state.selected_connection = None
-
-    # Update connections table
-    await show_connections(settings)
+    if state.mode == Mode.CONNECTION and len(state.connections) != 0:
+        await _delete_connection(settings)
+    elif state.mode == Mode.TABLE and len(state.tables) != 0:
+        await _delete_table(settings)
 
 
 async def select_connection(settings: Settings) -> None:

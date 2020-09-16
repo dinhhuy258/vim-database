@@ -1,6 +1,7 @@
 from .sql_client import SqlClient
 from .connection import Connection
 from .utils import CommandResult, run_command
+from .logging import log
 
 
 class SqliteClient(SqlClient):
@@ -19,3 +20,9 @@ class SqliteClient(SqlClient):
         if result.error:
             return list()
         return result.data.split()
+
+    def delete_table(self, database: str, table: str) -> None:
+        delete_table_query = "DROP TABLE " + table
+        result = run_command(["sqlite3", database, delete_table_query])
+        if result.error:
+            log.info("[vim-databse] " + result.data)

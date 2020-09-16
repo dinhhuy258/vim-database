@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from typing import Dict
 
 _DEFAULT_DATABASE_MAPPINGS = {
+    "show_connections": ["C"],
+    "show_databases": ["D"],
+    "show_tables": ["T"],
     "quit": ["q"],
     "delete": ["d"],
     "new": ["n"],
