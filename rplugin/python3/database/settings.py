@@ -8,6 +8,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "quit": ["q"],
     "delete": ["d"],
     "new": ["n"],
+    "info": ["i"],
     "select_connection": ["s"],
 }
 

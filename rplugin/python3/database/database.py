@@ -35,6 +35,7 @@ class Mode(Enum):
     CONNECTION = 1
     DATABASE = 2
     TABLE = 3
+    RESULT = 4
 
 
 @dataclass(frozen=False)
@@ -53,6 +54,13 @@ state: State = State(mode=Mode.UNKNOWN,
                      databases=list(),
                      selected_database=None,
                      tables=list())
+
+
+async def _show_result(settings: Settings, headers: list, rows: list) -> None:
+    state.mode = Mode.RESULT
+    window = await async_call(partial(open_database_window, settings))
+
+    await async_call(partial(render, window, ascii_table(headers, rows)))
 
 
 def _new_sqlite_connection() -> Optional[Connection]:
@@ -117,6 +125,24 @@ async def _delete_table(settings: Settings) -> None:
 
     # Update tables
     await show_tables(settings)
+
+
+async def _describe_table(settings: Settings) -> None:
+    table_index = await async_call(_get_table_index)
+    if table_index is None:
+        return
+
+    table = state.tables[table_index]
+
+    def get_table_info():
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.describe_table(state.selected_database, table)
+
+    table_info = await run_in_executor(get_table_info)
+    if table_info is None:
+        return
+
+    await _show_result(settings, table_info[0], table_info[1:])
 
 
 def _get_connection_index() -> Optional[int]:
@@ -253,6 +279,11 @@ async def new(settings: Settings) -> None:
         return
 
     await new_connection(settings)
+
+
+async def info(settings: Settings) -> None:
+    if state.mode == Mode.TABLE and len(state.tables) != 0:
+        await _describe_table(settings)
 
 
 async def delete(settings: Settings) -> None:

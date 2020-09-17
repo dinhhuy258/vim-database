@@ -1,3 +1,4 @@
+from typing import Optional
 from .sql_client import SqlClient
 from .connection import Connection
 from .utils import CommandResult, run_command
@@ -26,3 +27,17 @@ class SqliteClient(SqlClient):
         result = run_command(["sqlite3", database, delete_table_query])
         if result.error:
             log.info("[vim-databse] " + result.data)
+
+    def describe_table(self, database: str, table: str) -> Optional[list]:
+        describe_table_query = "PRAGMA table_info(" + table + ")"
+        result = run_command(["sqlite3", database, "--header", describe_table_query])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return None
+
+        lines = result.data.splitlines()
+        if len(lines) < 2:
+            log.info("[vim-databse] No table information found")
+            return None
+
+        return list(map(lambda data: data.split("|"), lines))

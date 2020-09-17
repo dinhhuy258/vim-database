@@ -15,6 +15,7 @@ from .database import (
     quit,
     delete,
     new,
+    info,
     select_connection,
 )
 
@@ -57,7 +58,6 @@ class DatabasePlugin(object):
 
         self._submit(run())
 
-
     @command('VDShowConnections')
     def show_connections_command(self) -> None:
         self._run(show_connections)
@@ -97,3 +97,7 @@ class DatabasePlugin(object):
     @function('VimDatabase_new')
     def new_function(self, args: Sequence[Any]) -> None:
         self._run(new)
+
+    @function('VimDatabase_info')
+    def info_function(self, args: Sequence[Any]) -> None:
+        self._run(info)
