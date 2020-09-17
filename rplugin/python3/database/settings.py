@@ -9,7 +9,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "delete": ["d"],
     "new": ["n"],
     "info": ["i"],
-    "select_connection": ["s"],
+    "select": ["s"],
 }
 
 

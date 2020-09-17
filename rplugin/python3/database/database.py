@@ -145,6 +145,42 @@ async def _describe_table(settings: Settings) -> None:
     await _show_result(settings, table_info[0], table_info[1:])
 
 
+async def _show_table_content(settings: Settings) -> None:
+    table_index = await async_call(_get_table_index)
+    if table_index is None:
+        return
+
+    table = state.tables[table_index]
+
+    def get_table_content():
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.run_query(state.selected_database,
+                                    "SELECT * FROM " + table + " LIMIT " + str(settings.results_limit))
+
+    table_content = await run_in_executor(get_table_content)
+    if table_content is None:
+        return
+    if len(table_content) == 0:
+        log.info("[vim-database] No record found for table " + table)
+        return
+
+    await _show_result(settings, table_content[0], table_content[1:])
+
+
+async def _select_connection(settings: Settings) -> None:
+    if state.mode != Mode.CONNECTION or len(state.connections) == 0:
+        return
+
+    connection_index = await async_call(_get_connection_index)
+    if connection_index is None:
+        return
+
+    state.selected_connection = state.connections[connection_index]
+
+    # Update connections table
+    await show_connections(settings)
+
+
 def _get_connection_index() -> Optional[int]:
     row = get_current_database_window_row()
     connections_size = len(state.connections)
@@ -293,15 +329,8 @@ async def delete(settings: Settings) -> None:
         await _delete_table(settings)
 
 
-async def select_connection(settings: Settings) -> None:
-    if state.mode != Mode.CONNECTION or len(state.connections) == 0:
-        return
-
-    connection_index = await async_call(_get_connection_index)
-    if connection_index is None:
-        return
-
-    state.selected_connection = state.connections[connection_index]
-
-    # Update connections table
-    await show_connections(settings)
+async def select(settings: Settings) -> None:
+    if state.mode == Mode.CONNECTION and len(state.connections) != 0:
+        await _select_connection(settings)
+    elif state.mode == Mode.TABLE and len(state.tables) != 0:
+        await _show_table_content(settings)

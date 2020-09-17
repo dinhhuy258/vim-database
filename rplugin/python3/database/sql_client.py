@@ -23,3 +23,7 @@ class SqlClient(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def describe_table(self, database: str, table: str) -> Optional[list]:
         pass
+
+    @abc.abstractmethod
+    def run_query(self, database: str, query: str) -> Optional[list]:
+        pass

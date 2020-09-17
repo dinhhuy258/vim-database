@@ -41,3 +41,12 @@ class SqliteClient(SqlClient):
             return None
 
         return list(map(lambda data: data.split("|"), lines))
+
+    def run_query(self, database: str, query: str) -> Optional[list]:
+        result = run_command(["sqlite3", database, "--header", query])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return None
+
+        lines = result.data.splitlines()
+        return list(map(lambda data: data.split("|"), lines))

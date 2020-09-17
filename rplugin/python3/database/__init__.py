@@ -16,7 +16,7 @@ from .database import (
     delete,
     new,
     info,
-    select_connection,
+    select,
 )
 
 
@@ -86,9 +86,9 @@ class DatabasePlugin(object):
     def show_tables_function(self, args: Sequence[Any]) -> None:
         self._run(show_tables)
 
-    @function('VimDatabase_select_connection')
-    def select_connection_function(self, args: Sequence[Any]) -> None:
-        self._run(select_connection)
+    @function('VimDatabase_select')
+    def select_function(self, args: Sequence[Any]) -> None:
+        self._run(select)
 
     @function('VimDatabase_delete')
     def delete_function(self, args: Sequence[Any]) -> None:
