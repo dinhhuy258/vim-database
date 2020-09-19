@@ -1,7 +1,13 @@
 def ascii_table(headers: list, rows: list) -> list:
     lines = []
     lens = []
-    for i in range(len(headers)):
+    num_rows = len(rows)
+    num_columns = len(headers)
+    for i in range(num_rows):
+        while (len(rows[i]) != num_columns):
+            rows[i].append("")
+
+    for i in range(num_columns):
         lens.append(len(max([x[i] for x in rows] + [headers[i]], key=lambda x: len(str(x)))))
     formats = []
     hformats = []

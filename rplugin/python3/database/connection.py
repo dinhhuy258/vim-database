@@ -6,11 +6,12 @@ from typing import Optional, Iterator
 from dataclasses import dataclass
 from enum import Enum
 
-_CONNECTION_TYPES = {1: 'SQLite'}
+_CONNECTION_TYPES = {1: 'SQLite', 2: 'MySQL'}
 
 
 class ConnectionType(Enum):
     SQLITE = 1
+    MYSQL = 2
 
     def to_string(self) -> str:
         return _CONNECTION_TYPES[self.value]
@@ -20,6 +21,10 @@ class ConnectionType(Enum):
 class Connection:
     name: str
     connection_type: ConnectionType
+    host: Optional[str]
+    port: Optional[str]
+    username: Optional[str]
+    password: Optional[str]
     database: Optional[str]
 
 
