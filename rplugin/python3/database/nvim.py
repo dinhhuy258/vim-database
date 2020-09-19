@@ -130,8 +130,8 @@ def confirm(question: str) -> bool:
     return _nvim.funcs.confirm(question, "&Yes\n&No", 2) == 1
 
 
-def get_input(question: str) -> str:
-    return _nvim.funcs.input(question, "")
+def get_input(question: str, default: str = "") -> str:
+    return _nvim.funcs.input(question, default)
 
 
 def get_buffer_in_window(window: Window) -> Buffer:

@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 from functools import partial
 from dataclasses import dataclass
@@ -46,6 +47,7 @@ class State:
     databases: list
     selected_database: Optional[str]
     tables: list
+    filter_pattern: Optional[str]
 
 
 state: State = State(mode=Mode.UNKNOWN,
@@ -53,7 +55,8 @@ state: State = State(mode=Mode.UNKNOWN,
                      selected_connection=None,
                      databases=list(),
                      selected_database=None,
-                     tables=list())
+                     tables=list(),
+                     filter_pattern=None)
 
 
 async def _show_result(settings: Settings, headers: list, rows: list) -> None:
@@ -331,18 +334,16 @@ async def show_tables(settings: Settings) -> None:
     window = await async_call(partial(open_database_window, settings))
     table_headers = ["Table"]
 
-    def get_table_datas():
-        table_datas = []
+    def get_tables():
         sql_client = SqlClientFactory.create(state.selected_connection)
-        tables = sql_client.get_tables(state.selected_database)
-        state.tables = tables
-        for table in tables:
-            table_datas.append([table])
-        return table_datas
+        state.tables = list(
+            filter(lambda table: state.filter_pattern is None or re.search(state.filter_pattern, table),
+                   sql_client.get_tables(state.selected_database)))
 
-    table_datas = await run_in_executor(get_table_datas)
+        return list(map(lambda table: [table], state.tables))
 
-    await async_call(partial(render, window, ascii_table(table_headers, table_datas)))
+    tables = await run_in_executor(get_tables)
+    await async_call(partial(render, window, ascii_table(table_headers, tables)))
 
 
 async def quit(settings: Settings) -> None:
@@ -373,3 +374,26 @@ async def select(settings: Settings) -> None:
         await _select_connection(settings)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await _show_table_content(settings)
+
+
+async def new_filter(settings: Settings) -> None:
+    if state.mode != Mode.TABLE:
+        return
+
+    def get_filter_pattern() -> Optional[str]:
+        pattern = state.filter_pattern if state.filter_pattern is not None else ""
+        return get_input("New filter: ",)
+
+    filter_pattern = await async_call(get_filter_pattern)
+    if filter_pattern:
+        state.filter_pattern = filter_pattern
+        await show_tables(settings)
+
+
+async def clear_filter(settings: Settings) -> None:
+    if state.mode != Mode.TABLE:
+        return
+
+    if state.filter_pattern is not None:
+        state.filter_pattern = None
+        await show_tables(settings)

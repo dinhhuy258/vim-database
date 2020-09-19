@@ -17,6 +17,8 @@ from .database import (
     new,
     info,
     select,
+    new_filter,
+    clear_filter,
 )
 
 
@@ -101,3 +103,11 @@ class DatabasePlugin(object):
     @function('VimDatabase_info')
     def info_function(self, args: Sequence[Any]) -> None:
         self._run(info)
+
+    @function('VimDatabase_filter')
+    def filter_function(self, args: Sequence[Any]) -> None:
+        self._run(new_filter)
+
+    @function('VimDatabase_clear_filter')
+    def clear_filter_function(self, args: Sequence[Any]) -> None:
+        self._run(clear_filter)
