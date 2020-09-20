@@ -223,6 +223,31 @@ async def _select_connection(settings: Settings) -> None:
     await show_connections(settings)
 
 
+async def _select_database(settings: Settings) -> None:
+    if state.mode != Mode.DATABASE or len(state.databases) == 0:
+        return
+
+    database_index = await async_call(_get_database_index)
+    if database_index is None:
+        return
+
+    state.selected_database = state.databases[database_index]
+
+    # Update databases table
+    await show_databases(settings)
+
+
+def _get_database_index() -> Optional[int]:
+    row = get_current_database_window_row()
+    database_size = len(state.databases)
+    # Minus 4 for header of the table
+    database_index = row - 4
+    if database_index < 0 or database_index >= len(state.databases):
+        return None
+
+    return database_index
+
+
 def _get_connection_index() -> Optional[int]:
     row = get_current_database_window_row()
     connections_size = len(state.connections)
@@ -373,6 +398,8 @@ async def delete(settings: Settings) -> None:
 async def select(settings: Settings) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
         await _select_connection(settings)
+    elif state.mode == Mode.DATABASE and len(state.databases) != 0:
+        await _select_database(settings)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await _show_table_content(settings)
 
