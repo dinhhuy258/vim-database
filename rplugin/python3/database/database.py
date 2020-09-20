@@ -221,7 +221,7 @@ async def _select_connection(settings: Settings) -> None:
         return
 
     state.selected_connection = state.connections[connection_index]
-    state.selected_database = state.selected_connection.name
+    state.selected_database = state.selected_connection.database
 
     # Update connections table
     await show_connections(settings)
