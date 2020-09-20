@@ -19,6 +19,8 @@ from .database import (
     select,
     new_filter,
     clear_filter,
+    show_query,
+    quit_query,
 )
 
 
@@ -72,6 +74,10 @@ class DatabasePlugin(object):
     def show_tables_command(self) -> None:
         self._run(show_tables)
 
+    @command('VDShowQuery')
+    def show_query_command(self) -> None:
+        self._run(show_query)
+
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:
         self._run(quit)
@@ -111,3 +117,7 @@ class DatabasePlugin(object):
     @function('VimDatabase_clear_filter')
     def clear_filter_function(self, args: Sequence[Any]) -> None:
         self._run(clear_filter)
+
+    @function('VimDatabaseQuery_quit')
+    def quit_query_function(self, args: Sequence[Any]) -> None:
+        self._run(quit_query)

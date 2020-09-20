@@ -24,6 +24,7 @@ from .database_window import (
     get_current_database_window_row,
     render,
 )
+from .query_window import open_query_window, close_query_window
 from .nvim import (
     async_call,
     confirm,
@@ -397,3 +398,25 @@ async def clear_filter(settings: Settings) -> None:
     if state.filter_pattern is not None:
         state.filter_pattern = None
         await show_tables(settings)
+
+
+async def show_query(settings: Settings) -> None:
+    if state.selected_connection is None:
+        state.selected_connection = await run_in_executor(get_default_connection)
+
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    if state.selected_database is None:
+        state.selected_database = state.selected_connection.database
+
+    if state.selected_database is None:
+        log.info("[vim-database] No database found")
+        return
+
+    await async_call(partial(open_query_window, settings))
+
+
+async def quit_query(settings: Settings) -> None:
+    await async_call(close_query_window)

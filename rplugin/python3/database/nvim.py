@@ -106,6 +106,14 @@ def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dic
     return window
 
 
+def open_window(buffer: Buffer, enter: bool, opts: Dict[str, Any]) -> Window:
+    return _nvim.api.open_win(buffer, enter, opts)
+
+
+def set_window_option(window: Window, option_name: str, option_value: Any) -> None:
+    _nvim.api.win_set_option(window, option_name, option_value)
+
+
 def get_current_cursor(window: Window) -> Tuple[int, int]:
     return _nvim.api.win_get_cursor(window)
 
@@ -143,3 +151,7 @@ def get_global_var(name: str, default_value: Any) -> Any:
         return _nvim.api.get_var(name)
     except:
         return default_value
+
+
+def get_option(name: str) -> Any:
+    return _nvim.api.get_option(name)
