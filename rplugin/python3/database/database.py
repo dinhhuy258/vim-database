@@ -24,7 +24,11 @@ from .database_window import (
     get_current_database_window_row,
     render,
 )
-from .query_window import open_query_window, close_query_window
+from .query_window import (
+    open_query_window,
+    close_query_window,
+    get_query,
+)
 from .nvim import (
     async_call,
     confirm,
@@ -447,3 +451,38 @@ async def show_query(settings: Settings) -> None:
 
 async def quit_query(settings: Settings) -> None:
     await async_call(close_query_window)
+
+
+async def run_query(settings: Settings) -> None:
+    if state.selected_connection is None:
+        state.selected_connection = await run_in_executor(get_default_connection)
+
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    if state.selected_database is None:
+        state.selected_database = state.selected_connection.database
+
+    if state.selected_database is None:
+        log.info("[vim-database] No database found")
+        return
+
+    query = await async_call(get_query)
+    if query is None:
+        return
+
+    def run_sql_query():
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.run_query(state.selected_database, query)
+
+    query_result = await run_in_executor(run_sql_query)
+    if query_result is None:
+        return
+
+    if len(query_result) < 2:
+        log.info("[vim-database] Query executed successfully")
+        return
+
+    await async_call(close_query_window)
+    await _show_result(settings, query_result[0], query_result[1:])

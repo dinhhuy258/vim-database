@@ -1,6 +1,6 @@
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
-from typing import Tuple, Iterator, Sequence, Any
+from typing import Tuple, Iterator, Sequence, Any, Optional
 from .utils import string_compose
 from .nvim import (
     call_atomic,
@@ -12,6 +12,7 @@ from .nvim import (
     get_buffer_in_window,
     get_buffer_option,
     close_window,
+    get_buffer_content,
 )
 from .settings import Settings
 
@@ -26,6 +27,16 @@ def _find_query_window_in_tab() -> Iterator[Window]:
         buffer_file_type = get_buffer_option(buffer, 'filetype')
         if buffer_file_type == _VIM_DATABASE_QUERY_FILE_TYPE:
             yield window
+
+
+def _find_query_buffer() -> Optional[Buffer]:
+    for window in find_windows_in_tab():
+        buffer: Buffer = get_buffer_in_window(window)
+        buffer_file_type = get_buffer_option(buffer, 'filetype')
+        buffer_modifiable = get_buffer_option(buffer, 'modifiable')
+        if buffer_file_type == _VIM_DATABASE_QUERY_FILE_TYPE and buffer_modifiable == True:
+            return buffer
+    return None
 
 
 def _buf_set_lines(buffer: Buffer, lines: list, modifiable: bool) -> Iterator[Tuple[str, Sequence[Any]]]:
@@ -110,3 +121,14 @@ def open_query_window(settings: Settings) -> None:
 
     instruction = _buf_set_lines(border_buffer, border_lines, False)
     call_atomic(*instruction)
+
+
+def get_query() -> Optional[str]:
+    buffer = _find_query_buffer()
+    if buffer is None:
+        return None
+    buffer_content = get_buffer_content(buffer)
+    buffer_content = list(map(lambda line: line.strip(), buffer_content))
+    sql_query = ' '.join(buffer_content).strip()
+
+    return None if len(sql_query) == 0 else sql_query

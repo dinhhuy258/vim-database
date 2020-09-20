@@ -5,6 +5,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "show_connections": ["C"],
     "show_databases": ["D"],
     "show_tables": ["T"],
+    "show_query": ["R"],
     "quit": ["q"],
     "delete": ["d"],
     "new": ["n"],
@@ -16,6 +17,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
 
 _DEFAULT_DATABASE_QUERY_MAPPINGS = {
     "quit": ["q"],
+    "run_query": ["r"],
 }
 
 

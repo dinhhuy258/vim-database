@@ -130,8 +130,20 @@ def get_buffer_in_window(window: Window) -> Buffer:
     return _nvim.api.win_get_buf(window)
 
 
-def get_buffer_option(buffer: Buffer, option: str) -> str:
+def get_buffer_option(buffer: Buffer, option: str) -> Any:
     return _nvim.api.buf_get_option(buffer, option)
+
+
+def get_buffer_content(buffer: Buffer) -> list:
+    return get_lines(buffer, 0, get_line_count(buffer))
+
+
+def get_lines(buffer: Buffer, start: int, end: int) -> list:
+    return _nvim.api.buf_get_lines(buffer, start, end, False)
+
+
+def get_line_count(buffer: Buffer) -> int:
+    return _nvim.api.buf_line_count(buffer)
 
 
 def confirm(question: str) -> bool:
