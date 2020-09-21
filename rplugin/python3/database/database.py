@@ -158,6 +158,52 @@ async def _delete_connection(settings: Settings) -> None:
     await show_connections(settings)
 
 
+async def _delete_result(settings: Settings) -> None:
+    result_index = await async_call(_get_result_index)
+    if result_index is None:
+        return
+    result_headers, result_rows = state.result
+
+    def get_primary_key() -> Optional[str]:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.get_primary_key(state.selected_database, state.selected_table)
+
+    primary_key = await run_in_executor(get_primary_key)
+    if primary_key is None:
+        log.info("[vim-database] No primary key found for table " + state.selected_table)
+        return
+
+    primary_key_index = -1
+    header_index = 0
+    for header in result_headers:
+        if header == primary_key:
+            primary_key_index = header_index
+            break
+        header_index = header_index + 1
+
+    if primary_key_index == -1:
+        log.info("[vim-database] No primary key found in result columns")
+        return
+
+    primary_key_value = result_rows[result_index][primary_key_index]
+
+    ans = await async_call(
+        partial(confirm, "DELETE FROM " + state.selected_table + " WHERE " + primary_key + " = " + primary_key_value))
+    if ans == False:
+        return
+
+    def delete() -> bool:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.delete(state.selected_database, state.selected_table,
+                                 (primary_key, "\"" + primary_key_value + "\""))
+
+    delete_result = await run_in_executor(delete)
+    if delete_result == True:
+        del result_rows[result_index]
+        state.result = (result_headers, result_rows)
+        await _show_result(settings, result_headers, result_rows)
+
+
 async def _delete_table(settings: Settings) -> None:
     table_index = await async_call(_get_table_index)
     if table_index is None:
@@ -273,7 +319,20 @@ def _get_connection_index() -> Optional[int]:
     return connection_index
 
 
-def _get_result_index() -> Optional[Tuple[int, int]]:
+def _get_result_index() -> Optional[int]:
+    row = get_current_database_window_row()
+    _, result_rows = state.result
+    result_size = len(result_rows)
+
+    # Minus 4 for header of the table
+    result_index = row - 4
+    if result_index < 0 or result_index >= result_size:
+        return None
+
+    return result_index
+
+
+def _get_result_row_and_column() -> Optional[Tuple[int, int]]:
     row, column = get_current_database_window_cursor()
     _, result_rows = state.result
     result_size = len(result_rows)
@@ -422,7 +481,7 @@ async def edit(settings: Settings) -> None:
     if state.mode != Mode.RESULT or state.selected_table is None:
         return
 
-    result_index = await async_call(_get_result_index)
+    result_index = await async_call(_get_result_row_and_column)
     if result_index is None:
         return
     result_headers, result_rows = state.result
@@ -486,6 +545,8 @@ async def delete(settings: Settings) -> None:
         await _delete_connection(settings)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await _delete_table(settings)
+    elif state.mode == Mode.RESULT and state.selected_table is not None:
+        await _delete_result(settings)
 
 
 async def select(settings: Settings) -> None:

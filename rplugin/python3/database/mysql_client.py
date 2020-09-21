@@ -80,6 +80,17 @@ class MySqlClient(SqlClient):
 
         return True
 
+    def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
+        condition_column, condition_value = condition
+        delete_query = "DELETE FROM " + table + " WHERE " + condition_column + " = " + condition_value
+
+        result = self._run_query(delete_query, ["--database=" + database])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return False
+
+        return True
+
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
         get_primary_key_query = "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = \'" + table + "\'  AND CONSTRAINT_NAME = 'PRIMARY' AND CONSTRAINT_SCHEMA=\'" + database + "\'"
         result = self._run_query(get_primary_key_query, ["--skip-column-names"])

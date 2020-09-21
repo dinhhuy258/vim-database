@@ -67,6 +67,17 @@ class SqliteClient(SqlClient):
 
         return True
 
+    def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
+        condition_column, condition_value = condition
+        delete_query = "DELETE FROM " + table + " WHERE " + condition_column + " = " + condition_value
+
+        result = run_command(["sqlite3", database, delete_query])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return False
+
+        return True
+
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
         table_info = self.describe_table(database, table)
         if table_info is None:

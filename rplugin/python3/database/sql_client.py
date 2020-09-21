@@ -33,5 +33,9 @@ class SqlClient(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
+        pass
+
+    @abc.abstractmethod
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
         pass
