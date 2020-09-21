@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, Tuple
 from functools import partial
 from dataclasses import dataclass
 from enum import Enum
@@ -22,6 +22,8 @@ from .database_window import (
     close_database_window,
     is_database_window_open,
     get_current_database_window_row,
+    get_current_database_window_line,
+    get_current_database_window_cursor,
     render,
 )
 from .query_window import (
@@ -52,6 +54,8 @@ class State:
     databases: list
     selected_database: Optional[str]
     tables: list
+    selected_table: Optional[str]
+    result: Optional[Tuple[list, list]]
     filter_pattern: Optional[str]
 
 
@@ -61,6 +65,8 @@ state: State = State(mode=Mode.UNKNOWN,
                      databases=list(),
                      selected_database=None,
                      tables=list(),
+                     selected_table=None,
+                     result=None,
                      filter_pattern=None)
 
 
@@ -187,6 +193,8 @@ async def _describe_table(settings: Settings) -> None:
     if table_info is None:
         return
 
+    state.selected_table = None
+    state.result = None
     await _show_result(settings, table_info[0], table_info[1:])
 
 
@@ -209,6 +217,8 @@ async def _show_table_content(settings: Settings) -> None:
         log.info("[vim-database] No record found for table " + table)
         return
 
+    state.selected_table = table
+    state.result = (table_content[0], table_content[1:])
     await _show_result(settings, table_content[0], table_content[1:])
 
 
@@ -246,7 +256,7 @@ def _get_database_index() -> Optional[int]:
     database_size = len(state.databases)
     # Minus 4 for header of the table
     database_index = row - 4
-    if database_index < 0 or database_index >= len(state.databases):
+    if database_index < 0 or database_index >= database_size:
         return None
 
     return database_index
@@ -257,10 +267,31 @@ def _get_connection_index() -> Optional[int]:
     connections_size = len(state.connections)
     # Minus 4 for header of the table
     connection_index = row - 4
-    if connection_index < 0 or connection_index >= len(state.connections):
+    if connection_index < 0 or connection_index >= connections_size:
         return None
 
     return connection_index
+
+
+def _get_result_index() -> Optional[Tuple[int, int]]:
+    row, column = get_current_database_window_cursor()
+    _, result_rows = state.result
+    result_size = len(result_rows)
+    # Minus 4 for header of the table
+    result_row = row - 4
+    if result_row < 0 or result_row >= result_size:
+        return None
+    line = get_current_database_window_line()
+    if line is None:
+        return None
+    if line[column] == '|':
+        return None
+    result_column = 0
+    for i in range(column):
+        if line[i] == '|':
+            result_column += 1
+
+    return (result_row, result_column - 1)
 
 
 def _get_table_index() -> Optional[int]:
@@ -268,7 +299,7 @@ def _get_table_index() -> Optional[int]:
     table_size = len(state.tables)
     # Minus 4 for header of the table
     table_index = row - 4
-    if table_index < 0 or table_index >= len(state.tables):
+    if table_index < 0 or table_index >= table_size:
         return None
 
     return table_index
@@ -387,6 +418,64 @@ async def new(settings: Settings) -> None:
     await new_connection(settings)
 
 
+async def edit(settings: Settings) -> None:
+    if state.mode != Mode.RESULT or state.selected_table is None:
+        return
+
+    result_index = await async_call(_get_result_index)
+    if result_index is None:
+        return
+    result_headers, result_rows = state.result
+    row, column = result_index
+    edit_column = result_headers[column]
+    edit_value = result_rows[row][column]
+
+    new_value = await async_call(partial(get_input, "Edit column " + edit_column + ": ", edit_value))
+    if new_value and new_value != edit_value:
+
+        def get_primary_key() -> Optional[str]:
+            sql_client = SqlClientFactory.create(state.selected_connection)
+            return sql_client.get_primary_key(state.selected_database, state.selected_table)
+
+        primary_key = await run_in_executor(get_primary_key)
+        if primary_key is None:
+            log.info("[vim-database] No primary key found for table " + state.selected_table)
+            return
+
+        primary_key_index = -1
+        header_index = 0
+        for header in result_headers:
+            if header == primary_key:
+                primary_key_index = header_index
+                break
+            header_index = header_index + 1
+
+        if primary_key_index == -1:
+            log.info("[vim-database] No primary key found in result columns")
+            return
+
+        primary_key_value = result_rows[row][primary_key_index]
+
+        ans = await async_call(
+            partial(
+                confirm, "UPDATE " + state.selected_table + " SET " + edit_column + " = " + new_value + " WHERE " +
+                primary_key + " = " + primary_key_value))
+        if ans == False:
+            return
+
+        def update() -> bool:
+            sql_client = SqlClientFactory.create(state.selected_connection)
+            return sql_client.update(state.selected_database, state.selected_table,
+                                     (edit_column, "\"" + new_value + "\""),
+                                     (primary_key, "\"" + primary_key_value + "\""))
+
+        update_result = await run_in_executor(update)
+        if update_result == True:
+            result_rows[row][column] = new_value
+            state.result = (result_headers, result_rows)
+            await _show_result(settings, result_headers, result_rows)
+
+
 async def info(settings: Settings) -> None:
     if state.mode == Mode.TABLE and len(state.tables) != 0:
         await _describe_table(settings)
@@ -414,7 +503,7 @@ async def new_filter(settings: Settings) -> None:
 
     def get_filter_pattern() -> Optional[str]:
         pattern = state.filter_pattern if state.filter_pattern is not None else ""
-        return get_input("New filter: ",)
+        return get_input("New filter: ", pattern)
 
     filter_pattern = await async_call(get_filter_pattern)
     if filter_pattern:
@@ -483,6 +572,7 @@ async def run_query(settings: Settings) -> None:
     if len(query_result) < 2:
         log.info("[vim-database] Query executed successfully")
         return
-
+    state.selected_table = None
+    state.result = None
     await async_call(close_query_window)
     await _show_result(settings, query_result[0], query_result[1:])

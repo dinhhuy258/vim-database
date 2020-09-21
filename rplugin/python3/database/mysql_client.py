@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, Tuple
 from .sql_client import SqlClient
 from .connection import Connection
 from .utils import CommandResult, run_command
@@ -65,3 +65,26 @@ class MySqlClient(SqlClient):
 
         lines = result.data.splitlines()
         return list(map(lambda line: line.split("\t"), lines))
+
+    def update(self, database: str, table: str, update: Tuple[str, str], condition: Tuple[str, str]) -> bool:
+        update_column, update_value = update
+        update_query = "UPDATE " + table + " SET " + update_column + " = " + update_value
+
+        condition_column, condition_value = condition
+        update_query = update_query + " WHERE " + condition_column + " = " + condition_value
+
+        result = self._run_query(update_query, ["--database=" + database])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return False
+
+        return True
+
+    def get_primary_key(self, database: str, table: str) -> Optional[str]:
+        get_primary_key_query = "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = \'" + table + "\'  AND CONSTRAINT_NAME = 'PRIMARY' AND CONSTRAINT_SCHEMA=\'" + database + "\'"
+        result = self._run_query(get_primary_key_query, ["--skip-column-names"])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return None
+
+        return result.data

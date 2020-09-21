@@ -15,6 +15,7 @@ from .database import (
     quit,
     delete,
     new,
+    edit,
     info,
     select,
     new_filter,
@@ -110,6 +111,10 @@ class DatabasePlugin(object):
     @function('VimDatabase_new')
     def new_function(self, args: Sequence[Any]) -> None:
         self._run(new)
+
+    @function('VimDatabase_edit')
+    def edit_function(self, args: Sequence[Any]) -> None:
+        self._run(edit)
 
     @function('VimDatabase_info')
     def info_function(self, args: Sequence[Any]) -> None:

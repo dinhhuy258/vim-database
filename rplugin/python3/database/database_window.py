@@ -14,6 +14,7 @@ from .nvim import (
     set_buffer_in_window,
     get_buffer_in_window,
     get_current_cursor,
+    get_lines,
     WindowLayout,
 )
 
@@ -70,6 +71,25 @@ def close_database_window() -> None:
     window = _find_database_window_in_tab()
     if window is not None:
         close_window(window, True)
+
+
+def get_current_database_window_line() -> Optional[str]:
+    window = _find_database_window_in_tab()
+    if window is None:
+        return None
+
+    buffer: Buffer = get_buffer_in_window(window)
+    row, _ = get_current_cursor(window)
+    lines = get_lines(buffer, row - 1, row)
+    return None if len(lines) == 0 else lines[0]
+
+
+def get_current_database_window_cursor() -> Optional[Tuple[int, int]]:
+    window = _find_database_window_in_tab()
+    if window is None:
+        return None
+
+    return get_current_cursor(window)
 
 
 def get_current_database_window_row() -> Optional[int]:

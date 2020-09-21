@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 from .sql_client import SqlClient
 from .connection import Connection
 from .utils import CommandResult, run_command
@@ -52,3 +52,43 @@ class SqliteClient(SqlClient):
 
         lines = result.data.splitlines()
         return list(map(lambda data: data.split("|"), lines))
+
+    def update(self, database: str, table: str, update: Tuple[str, str], condition: Tuple[str, str]) -> bool:
+        update_column, update_value = update
+        update_query = "UPDATE " + table + " SET " + update_column + " = " + update_value
+
+        condition_column, condition_value = condition
+        update_query = update_query + " WHERE " + condition_column + " = " + condition_value
+
+        result = run_command(["sqlite3", database, update_query])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return False
+
+        return True
+
+    def get_primary_key(self, database: str, table: str) -> Optional[str]:
+        table_info = self.describe_table(database, table)
+        if table_info is None:
+            return None
+        headers = table_info[0]
+        columns = table_info[1:]
+        pk_index = -1
+        name_index = -1
+
+        index = 0
+        for header in headers:
+            if header == "pk":
+                pk_index = index
+            if header == "name":
+                name_index = index
+            index = index + 1
+
+        if pk_index == -1 or name_index == -1:
+            return None
+
+        for column_info in columns:
+            if column_info[pk_index] == "1":
+                return column_info[name_index]
+
+        return None

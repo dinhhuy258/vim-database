@@ -1,5 +1,5 @@
 import abc
-from typing import Optional
+from typing import Optional, Tuple
 from .connection import Connection
 
 
@@ -26,4 +26,12 @@ class SqlClient(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def run_query(self, database: str, query: str) -> Optional[list]:
+        pass
+
+    @abc.abstractmethod
+    def update(self, database: str, table: str, update: Tuple[str, str], condition: Tuple[str, str]) -> bool:
+        pass
+
+    @abc.abstractmethod
+    def get_primary_key(self, database: str, table: str) -> Optional[str]:
         pass
