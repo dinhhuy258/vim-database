@@ -13,6 +13,8 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "info": ["i"],
     "select": ["s"],
     "filter": ["f"],
+    "filter_column": ["l"],
+    "clear_filter_column": ["L"],
     "clear_filter": ["F"],
 }
 

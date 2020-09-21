@@ -19,6 +19,8 @@ from .database import (
     info,
     select,
     new_filter,
+    filter_column,
+    clear_filter_column,
     clear_filter,
     show_query,
     quit_query,
@@ -127,6 +129,14 @@ class DatabasePlugin(object):
     @function('VimDatabase_clear_filter')
     def clear_filter_function(self, args: Sequence[Any]) -> None:
         self._run(clear_filter)
+
+    @function('VimDatabase_filter_column')
+    def filter_column_function(self, args: Sequence[Any]) -> None:
+        self._run(filter_column)
+
+    @function('VimDatabase_clear_filter_column')
+    def clear_filter_column_function(self, args: Sequence[Any]) -> None:
+        self._run(clear_filter_column)
 
     @function('VimDatabaseQuery_quit')
     def quit_query_function(self, args: Sequence[Any]) -> None:

@@ -57,6 +57,8 @@ class State:
     selected_table: Optional[str]
     result: Optional[Tuple[list, list]]
     filter_pattern: Optional[str]
+    filter_column: Optional[str]
+    filter_condition: Optional[str]
 
 
 state: State = State(mode=Mode.UNKNOWN,
@@ -67,7 +69,9 @@ state: State = State(mode=Mode.UNKNOWN,
                      tables=list(),
                      selected_table=None,
                      result=None,
-                     filter_pattern=None)
+                     filter_pattern=None,
+                     filter_column=None,
+                     filter_condition=None)
 
 
 async def _show_result(settings: Settings, headers: list, rows: list) -> None:
@@ -244,20 +248,22 @@ async def _describe_table(settings: Settings) -> None:
     await _show_result(settings, table_info[0], table_info[1:])
 
 
-async def _show_table_content(settings: Settings) -> None:
-    table_index = await async_call(_get_table_index)
-    if table_index is None:
-        return
-
-    table = state.tables[table_index]
+async def _show_table_content(settings: Settings, table: str) -> None:
 
     def get_table_content():
         sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.run_query(state.selected_database,
-                                    "SELECT * FROM " + table + " LIMIT " + str(settings.results_limit))
+        query = "SELECT *" if state.filter_column is None else "SELECT " + state.filter_column
+        query = query + " FROM " + table
+        if state.filter_condition is not None:
+            query = query + " WHERE " + state.filter_condition
+        query = query + " LIMIT " + str(settings.results_limit)
+        return sql_client.run_query(state.selected_database, query)
 
     table_content = await run_in_executor(get_table_content)
     if table_content is None:
+        # Error
+        state.filter_condition = None
+        state.filter_column = None
         return
     if len(table_content) == 0:
         log.info("[vim-database] No record found for table " + table)
@@ -362,6 +368,31 @@ def _get_table_index() -> Optional[int]:
         return None
 
     return table_index
+
+
+async def _table_filter(settings: Settings) -> None:
+
+    def get_filter_pattern() -> Optional[str]:
+        pattern = state.filter_pattern if state.filter_pattern is not None else ""
+        return get_input("New filter: ", pattern)
+
+    filter_pattern = await async_call(get_filter_pattern)
+    if filter_pattern:
+        state.filter_pattern = filter_pattern
+        await show_tables(settings)
+
+
+async def _result_filter(settings: Settings) -> None:
+
+    def get_filter_condition() -> Optional[str]:
+        condition = state.filter_condition if state.filter_condition is not None else ""
+        return get_input("New condition: ", condition)
+
+    filter_condition = await async_call(get_filter_condition)
+    filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
+    if filter_condition:
+        state.filter_condition = filter_condition
+        await _show_table_content(settings, state.selected_table)
 
 
 async def new_connection(settings: Settings) -> None:
@@ -555,30 +586,54 @@ async def select(settings: Settings) -> None:
     elif state.mode == Mode.DATABASE and len(state.databases) != 0:
         await _select_database(settings)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
-        await _show_table_content(settings)
+        state.filter_condition = None
+        state.filter_column = None
+        table_index = await async_call(_get_table_index)
+        if table_index is None:
+            return
+        table = state.tables[table_index]
+
+        await _show_table_content(settings, table)
 
 
 async def new_filter(settings: Settings) -> None:
-    if state.mode != Mode.TABLE:
+    if state.mode == Mode.TABLE:
+        await _table_filter(settings)
+    elif state.mode == Mode.RESULT and state.selected_table is not None:
+        await _result_filter(settings)
+
+
+async def filter_column(settings: Settings) -> None:
+    if state.mode != Mode.RESULT or state.selected_table is None:
         return
 
-    def get_filter_pattern() -> Optional[str]:
-        pattern = state.filter_pattern if state.filter_pattern is not None else ""
-        return get_input("New filter: ", pattern)
+    def get_filter_column() -> Optional[str]:
+        filter_column = state.filter_column if state.filter_column is not None else ""
+        return get_input("New filter column: ", filter_column)
 
-    filter_pattern = await async_call(get_filter_pattern)
-    if filter_pattern:
-        state.filter_pattern = filter_pattern
-        await show_tables(settings)
+    filter_column = await async_call(get_filter_column)
+    filter_column = filter_column if filter_column is None else filter_column.strip()
+    if filter_column:
+        state.filter_column = filter_column
+        await _show_table_content(settings, state.selected_table)
+
+
+async def clear_filter_column(settings: Settings) -> None:
+    if state.mode != Mode.RESULT or state.selected_table is None:
+        return
+
+    if state.filter_column is not None:
+        state.filter_column = None
+        await _show_table_content(settings, state.selected_table)
 
 
 async def clear_filter(settings: Settings) -> None:
-    if state.mode != Mode.TABLE:
-        return
-
-    if state.filter_pattern is not None:
+    if state.mode == Mode.TABLE and state.filter_pattern is not None:
         state.filter_pattern = None
         await show_tables(settings)
+    elif state.mode == Mode.RESULT and state.selected_table is not None and state.filter_condition is not None:
+        state.filter_condition = None
+        await _show_table_content(settings, state.selected_table)
 
 
 async def show_query(settings: Settings) -> None:
