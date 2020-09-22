@@ -167,3 +167,11 @@ def get_global_var(name: str, default_value: Any) -> Any:
 
 def get_option(name: str) -> Any:
     return _nvim.api.get_option(name)
+
+
+def get_window_width(window: Window) -> int:
+    return _nvim.api.win_get_width(window)
+
+
+def set_window_width(window: Window, width: int) -> None:
+    _nvim.api.win_set_width(window, width)

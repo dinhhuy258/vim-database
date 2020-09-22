@@ -17,6 +17,8 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "filter_column": ["l"],
     "clear_filter_column": ["L"],
     "clear_filter": ["F"],
+    'bigger': ["=", "+"],
+    'smaller': ["_", "-"],
 }
 
 _DEFAULT_DATABASE_QUERY_MAPPINGS = {

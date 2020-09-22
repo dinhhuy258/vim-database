@@ -23,6 +23,7 @@ from .database import (
     filter_column,
     clear_filter_column,
     clear_filter,
+    resize_database_window,
     show_query,
     quit_query,
     run_query,
@@ -142,6 +143,14 @@ class DatabasePlugin(object):
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, args: Sequence[Any]) -> None:
         self._run(clear_filter_column)
+
+    @function('VimDatabase_bigger')
+    def bigger_function(self, args: Sequence[Any]) -> None:
+        self._run(resize_database_window, 2)
+
+    @function('VimDatabase_smaller')
+    def smaller_function(self, args: Sequence[Any]) -> None:
+        self._run(resize_database_window, -2)
 
     @function('VimDatabaseQuery_quit')
     def quit_query_function(self, args: Sequence[Any]) -> None:

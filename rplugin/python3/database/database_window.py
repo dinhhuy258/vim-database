@@ -15,6 +15,8 @@ from .nvim import (
     get_buffer_in_window,
     get_current_cursor,
     get_lines,
+    get_window_width,
+    set_window_width,
     WindowLayout,
 )
 
@@ -108,3 +110,11 @@ def render(window: Window, lines: list) -> None:
     buffer: Buffer = get_buffer_in_window(window)
     instruction = _buf_set_lines(buffer, lines, False)
     call_atomic(*instruction)
+
+
+def resize(direction: int) -> None:
+    window = _find_database_window_in_tab()
+    if window is None:
+        return
+    width = get_window_width(window)
+    set_window_width(window, width + direction)

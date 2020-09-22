@@ -24,6 +24,7 @@ from .database_window import (
     get_current_database_window_row,
     get_current_database_window_line,
     get_current_database_window_cursor,
+    resize,
     render,
 )
 from .query_window import (
@@ -747,3 +748,7 @@ async def run_query(settings: Settings) -> None:
     state.result = None
     await async_call(close_query_window)
     await _show_result(settings, query_result[0], query_result[1:])
+
+
+async def resize_database_window(settings: Settings, direction: int) -> None:
+    await async_call(partial(resize, direction))
