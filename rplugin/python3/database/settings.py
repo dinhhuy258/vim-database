@@ -8,7 +8,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "show_query": ["R"],
     "quit": ["q"],
     "delete": ["d"],
-    "new": ["n"],
+    "new": ["c"],
     "copy": ["p"],
     "edit": ["e"],
     "info": ["i"],
