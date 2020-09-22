@@ -508,6 +508,61 @@ async def new(settings: Settings) -> None:
     await new_connection(settings)
 
 
+async def copy(settings: Settings) -> None:
+    if state.mode != Mode.RESULT:
+        return
+
+    result_index = await async_call(_get_result_index)
+    if result_index is None:
+        return
+    result_headers, result_rows = state.result
+
+    def get_primary_key() -> Optional[str]:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.get_primary_key(state.selected_database, state.selected_table)
+
+    primary_key = await run_in_executor(get_primary_key)
+    if primary_key is None:
+        log.info("[vim-database] No primary key found for table " + state.selected_table)
+        return
+
+    primary_key_index = -1
+    header_index = 0
+    for header in result_headers:
+        if header == primary_key:
+            primary_key_index = header_index
+            break
+        header_index = header_index + 1
+
+    if primary_key_index == -1:
+        log.info("[vim-database] No primary key found in result columns")
+        return
+
+    primary_key_value = result_rows[result_index][primary_key_index]
+
+    ans = await async_call(partial(confirm, "Copy row: " + primary_key + " = " + primary_key_value))
+    if ans == False:
+        return
+
+    new_primary_key_value = await async_call(partial(get_input, "New primary key value: "))
+
+    if not new_primary_key_value:
+        return
+
+    def copy_row() -> bool:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.copy(state.selected_database, state.selected_table, (primary_key, primary_key_value),
+                               new_primary_key_value)
+
+    copy_result = await run_in_executor(copy_row)
+    if copy_result == True:
+        new_row = result_rows[result_index]
+        new_row[primary_key_index] = new_primary_key_value
+        result_rows.append(new_row)
+        state.result = (result_headers, result_rows)
+        await _show_result(settings, result_headers, result_rows)
+
+
 async def edit(settings: Settings) -> None:
     if state.mode != Mode.RESULT or state.selected_table is None:
         return

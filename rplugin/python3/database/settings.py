@@ -9,6 +9,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "quit": ["q"],
     "delete": ["d"],
     "new": ["n"],
+    "copy": ["p"],
     "edit": ["e"],
     "info": ["i"],
     "select": ["s"],

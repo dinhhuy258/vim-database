@@ -67,6 +67,10 @@ class SqliteClient(SqlClient):
 
         return True
 
+    def copy(self, database: str, table: str, primary: Tuple[str, str], new_primary_key_value: str) -> bool:
+        log.info("[vim-databse] Not supported for sqlite")
+        return False
+
     def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
         condition_column, condition_value = condition
         delete_query = "DELETE FROM " + table + " WHERE " + condition_column + " = " + condition_value

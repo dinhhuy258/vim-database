@@ -80,6 +80,22 @@ class MySqlClient(SqlClient):
 
         return True
 
+    def copy(self, database: str, table: str, primary: Tuple[str, str], new_primary_key_value: str) -> bool:
+        primary_key, primary_key_value = primary
+
+        create_temporary_query = "CREATE TEMPORARY TABLE tmptable_1 SELECT * FROM " + table + " WHERE " + primary_key + " = " + primary_key_value + ";"
+        update_primary_key_temporary_query = "UPDATE tmptable_1 SET " + primary_key + " = " + new_primary_key_value + ";"
+        insert_query = "INSERT INTO " + table + " SELECT * FROM tmptable_1;"
+        delete_temporary_query = "DROP TEMPORARY TABLE IF EXISTS tmptable_1;"
+        copy_query = create_temporary_query + update_primary_key_temporary_query + insert_query + delete_temporary_query
+
+        result = self._run_query(copy_query, ["--database=" + database])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return False
+
+        return True
+
     def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
         condition_column, condition_value = condition
         delete_query = "DELETE FROM " + table + " WHERE " + condition_column + " = " + condition_value

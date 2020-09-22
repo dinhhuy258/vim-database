@@ -29,6 +29,10 @@ class SqlClient(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def copy(self, database: str, table: str, primary: Tuple[str, str], new_primary_key_value: str) -> bool:
+        pass
+
+    @abc.abstractmethod
     def update(self, database: str, table: str, update: Tuple[str, str], condition: Tuple[str, str]) -> bool:
         pass
 
