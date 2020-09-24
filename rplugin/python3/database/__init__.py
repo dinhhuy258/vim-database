@@ -12,6 +12,7 @@ from .database import (
     show_connections,
     show_databases,
     show_tables,
+    toggle,
     quit,
     delete,
     new,
@@ -68,21 +69,9 @@ class DatabasePlugin(object):
 
         self._submit(run())
 
-    @command('VDShowConnections')
-    def show_connections_command(self) -> None:
-        self._run(show_connections)
-
-    @command('VDShowDatabases')
-    def show_databases_command(self) -> None:
-        self._run(show_databases)
-
-    @command('VDShowTables')
-    def show_tables_command(self) -> None:
-        self._run(show_tables)
-
-    @command('VDShowQuery')
-    def show_query_command(self) -> None:
-        self._run(show_query)
+    @command('VDToggleDatabase')
+    def toggle_command(self) -> None:
+        self._run(toggle)
 
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:
