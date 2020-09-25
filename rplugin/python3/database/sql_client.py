@@ -43,3 +43,7 @@ class SqlClient(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
         pass
+
+    @abc.abstractmethod
+    def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
+        pass

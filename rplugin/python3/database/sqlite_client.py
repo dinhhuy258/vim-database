@@ -107,3 +107,7 @@ class SqliteClient(SqlClient):
                 return column_info[name_index]
 
         return None
+
+    def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
+        log.info("[vim-databse] Not supported for sqlite")
+        return None

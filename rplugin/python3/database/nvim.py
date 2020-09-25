@@ -25,6 +25,16 @@ class WindowLayout(Enum):
     BELOW = 2
 
 
+def _buf_set_lines(buffer: Buffer, lines: list) -> Iterator[Tuple[str, Sequence[Any]]]:
+    modifiable = get_buffer_option(buffer, "modifiable")
+    if not modifiable:
+        yield "nvim_buf_set_option", (buffer, "modifiable", True)
+
+    yield "nvim_buf_set_lines", (buffer, 0, -1, True, [line.rstrip('\n') for line in lines])
+    if not modifiable:
+        yield "nvim_buf_set_option", (buffer, "modifiable", False)
+
+
 def call_atomic(*instructions: Tuple[str, Sequence[Any]]) -> None:
     inst = tuple((f"{instruction}", args) for instruction, args in instructions)
     out, error = _nvim.api.call_atomic(inst)
@@ -179,3 +189,9 @@ def set_window_width(window: Window, width: int) -> None:
 
 def set_cursor(window: Window, cursor: Tuple[int, int]) -> None:
     _nvim.api.win_set_cursor(window, cursor)
+
+
+def render(window: Window, lines: list) -> None:
+    buffer: Buffer = get_buffer_in_window(window)
+    instruction = _buf_set_lines(buffer, lines)
+    call_atomic(*instruction)

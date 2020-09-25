@@ -6,7 +6,6 @@ from .nvim import (
     call_atomic,
     async_call,
     find_windows_in_tab,
-    get_buffer_in_window,
     get_buffer_option,
     create_buffer,
     create_window,
@@ -52,15 +51,6 @@ def _open_database_window(settings: Settings) -> Window:
     return window
 
 
-def _buf_set_lines(buffer: Buffer, lines: list, modifiable: bool) -> Iterator[Tuple[str, Sequence[Any]]]:
-    if not modifiable:
-        yield "nvim_buf_set_option", (buffer, "modifiable", True)
-
-    yield "nvim_buf_set_lines", (buffer, 0, -1, True, [line.rstrip('\n') for line in lines])
-    if not modifiable:
-        yield "nvim_buf_set_option", (buffer, "modifiable", False)
-
-
 def open_database_window(settings: Settings) -> Window:
     window = _find_database_window_in_tab()
     if window is None:
@@ -104,12 +94,6 @@ def get_current_database_window_row() -> Optional[int]:
 
 def is_database_window_open() -> bool:
     return _find_database_window_in_tab() is not None
-
-
-def render(window: Window, lines: list) -> None:
-    buffer: Buffer = get_buffer_in_window(window)
-    instruction = _buf_set_lines(buffer, lines, False)
-    call_atomic(*instruction)
 
 
 def resize(direction: int) -> None:

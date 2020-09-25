@@ -54,10 +54,13 @@ def close_query_window() -> None:
         close_window(window, True)
 
 
-def open_query_window(settings: Settings) -> None:
+def open_query_window(settings: Settings) -> Optional[Window]:
     query_windows = _find_query_window_in_tab()
     for window in query_windows:
-        return
+        buffer: Buffer = get_buffer_in_window(window)
+        modifiable = get_buffer_option(buffer, 'modifiable')
+        if modifiable:
+            return window
 
     buffer = create_buffer(
         settings.query_mappings, {
@@ -104,7 +107,7 @@ def open_query_window(settings: Settings) -> None:
         "filetype": _VIM_DATABASE_QUERY_FILE_TYPE,
     })
 
-    window = open_window(
+    border_window = open_window(
         border_buffer, False, {
             "relative": "editor",
             "width": width + 2,
@@ -115,12 +118,14 @@ def open_query_window(settings: Settings) -> None:
             "style": "minimal",
             "focusable": False,
         })
-    set_window_option(window, "winhl", "Normal:Normal")
-    set_window_option(window, "cursorcolumn", False)
-    set_window_option(window, "colorcolumn", '')
+    set_window_option(border_window, "winhl", "Normal:Normal")
+    set_window_option(border_window, "cursorcolumn", False)
+    set_window_option(border_window, "colorcolumn", '')
 
     instruction = _buf_set_lines(border_buffer, border_lines, False)
     call_atomic(*instruction)
+
+    return window
 
 
 def get_query() -> Optional[str]:

@@ -115,3 +115,32 @@ class MySqlClient(SqlClient):
             return None
 
         return result.data
+
+    def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
+        get_columns_query = "SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_NAME = \'" + table + "\' AND TABLE_SCHEMA=\'" + database + "\'"
+        result = self._run_query(get_columns_query, ["--skip-column-names"])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return None
+
+        lines = result.data.splitlines()
+        columns = list(map(lambda line: line.split("\t"), lines))
+        insert_query = []
+        insert_query.append("INSERT INTO " + table + " (")
+        columns_len = len(columns)
+        for index, column in enumerate(columns):
+            insert_query.append("\t" + column[0])
+            if index != columns_len - 1:
+                insert_query[-1] += ","
+        insert_query.append(") VALUES (")
+
+        for index, column in enumerate(columns):
+            if column[1] != 'NULL' or (column[1] == 'NULL' and column[2].lower() == 'yes'):
+                insert_query.append("\t" + column[1])
+            else:
+                insert_query.append("\t")
+            if index != columns_len - 1:
+                insert_query[-1] += ","
+        insert_query.append(")")
+
+        return insert_query

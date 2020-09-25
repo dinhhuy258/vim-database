@@ -14,6 +14,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "info": ["i"],
     "select": ["s"],
     "filter": ["f"],
+    "refresh": ["r"],
     "filter_column": ["g"],
     "clear_filter_column": ["G"],
     "clear_filter": ["F"],

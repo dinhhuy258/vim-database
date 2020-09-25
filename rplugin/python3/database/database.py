@@ -25,7 +25,6 @@ from .database_window import (
     get_current_database_window_line,
     get_current_database_window_cursor,
     resize,
-    render,
 )
 from .query_window import (
     open_query_window,
@@ -37,6 +36,7 @@ from .nvim import (
     confirm,
     get_input,
     set_cursor,
+    render,
 )
 
 
@@ -436,6 +436,10 @@ async def toggle(settings: Settings) -> None:
         await show_databases(settings)
     elif state.mode == Mode.TABLE:
         await show_tables(settings)
+    elif state.mode == Mode.TABLE_CONTENT_RESULT:
+        await _show_table_content(settings, state.selected_table)
+    elif state.mode == Mode.INFO_RESULT:
+        await _show_table_info(settings, state.selected_table)
     else:
         # Fallback
         await show_connections(settings)
@@ -539,10 +543,20 @@ async def quit(settings: Settings) -> None:
 
 
 async def new(settings: Settings) -> None:
-    if state.mode != Mode.CONNECTION:
-        return
+    if state.mode == Mode.CONNECTION:
+        await new_connection(settings)
+    elif state.mode == Mode.TABLE_CONTENT_RESULT:
 
-    await new_connection(settings)
+        def get_template_insert_query():
+            sql_client = SqlClientFactory.create(state.selected_connection)
+            return sql_client.get_template_insert_query(state.selected_database, state.selected_table)
+
+        insert_query = await run_in_executor(get_template_insert_query)
+        if insert_query is None:
+            return
+
+        query_window = await async_call(partial(open_query_window, settings))
+        await async_call(partial(render, query_window, insert_query))
 
 
 async def copy(settings: Settings) -> None:
@@ -723,6 +737,17 @@ async def clear_filter(settings: Settings) -> None:
     elif state.mode == Mode.TABLE_CONTENT_RESULT and state.filter_condition is not None:
         state.filter_condition = None
         await _show_table_content(settings, state.selected_table)
+
+
+async def refresh(settings: Settings) -> None:
+    if state.mode == Mode.DATABASE and len(state.databases) != 0:
+        await show_databases(settings)
+    elif state.mode == Mode.TABLE and len(state.tables) != 0:
+        await show_tables(settings)
+    elif state.mode == Mode.TABLE_CONTENT_RESULT:
+        await _show_table_content(settings, state.selected_table)
+    elif state.mode == Mode.INFO_RESULT:
+        await _show_table_info(settings, state.selected_table)
 
 
 async def show_query(settings: Settings) -> None:

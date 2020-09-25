@@ -24,6 +24,7 @@ from .database import (
     filter_column,
     clear_filter_column,
     clear_filter,
+    refresh,
     resize_database_window,
     show_query,
     quit_query,
@@ -132,6 +133,10 @@ class DatabasePlugin(object):
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, args: Sequence[Any]) -> None:
         self._run(clear_filter_column)
+
+    @function('VimDatabase_refresh')
+    def refresh_function(self, args: Sequence[Any]) -> None:
+        self._run(refresh)
 
     @function('VimDatabase_bigger')
     def bigger_function(self, args: Sequence[Any]) -> None:
