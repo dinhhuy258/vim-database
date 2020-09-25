@@ -67,7 +67,7 @@ class SqliteClient(SqlClient):
 
         return True
 
-    def copy(self, database: str, table: str, primary: Tuple[str, str], new_primary_key_value: str) -> bool:
+    def copy(self, database: str, table: str, unique_columns: list, new_unique_column_values: list) -> bool:
         log.info("[vim-databse] Not supported for sqlite")
         return False
 
@@ -107,6 +107,9 @@ class SqliteClient(SqlClient):
                 return column_info[name_index]
 
         return None
+
+    def get_unique_columns(self, database: str, table: str) -> Optional[list]:
+        return [self.get_primary_key(database, table)]
 
     def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
         log.info("[vim-databse] Not supported for sqlite")

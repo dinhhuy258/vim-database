@@ -29,7 +29,7 @@ class SqlClient(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def copy(self, database: str, table: str, primary: Tuple[str, str], new_primary_key_value: str) -> bool:
+    def copy(self, database: str, table: str, unique_columns: list, new_unique_column_values: list) -> bool:
         pass
 
     @abc.abstractmethod
@@ -42,6 +42,10 @@ class SqlClient(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
+        pass
+
+    @abc.abstractmethod
+    def get_unique_columns(self, database: str, table: str) -> Optional[list]:
         pass
 
     @abc.abstractmethod

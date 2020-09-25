@@ -562,54 +562,51 @@ async def new(settings: Settings) -> None:
 async def copy(settings: Settings) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
+    if state.filter_column is not None:
+        log.info("[vim-database] Can not copy row in filter column mode")
+        return
 
     result_index = await async_call(_get_result_index)
     if result_index is None:
         return
     result_headers, result_rows = state.result
+    copy_row = result_rows[result_index][:]
 
-    def get_primary_key() -> Optional[str]:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_primary_key(state.selected_database, state.selected_table)
-
-    primary_key = await run_in_executor(get_primary_key)
-    if primary_key is None:
-        log.info("[vim-database] No primary key found for table " + state.selected_table)
-        return
-
-    primary_key_index = -1
-    header_index = 0
-    for header in result_headers:
-        if header == primary_key:
-            primary_key_index = header_index
-            break
-        header_index = header_index + 1
-
-    if primary_key_index == -1:
-        log.info("[vim-database] No primary key found in result columns")
-        return
-
-    primary_key_value = result_rows[result_index][primary_key_index]
-
-    ans = await async_call(partial(confirm, "Copy row: " + primary_key + " = " + primary_key_value))
+    ans = await async_call(partial(confirm, "Do you want to copy this row?"))
     if ans == False:
         return
 
-    new_primary_key_value = await async_call(partial(get_input, "New primary key value: "))
+    header_map = dict()
+    for header_index, header in enumerate(result_headers):
+        header_map[header] = header_index
 
-    if not new_primary_key_value:
+    def get_unique_columns() -> Optional[str]:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.get_unique_columns(state.selected_database, state.selected_table)
+
+    unique_column_names = await run_in_executor(get_unique_columns)
+    if len(unique_column_names) == 0:
+        log.info("[vim-database] No unique column found")
         return
 
-    def copy_row() -> bool:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.copy(state.selected_database, state.selected_table, (primary_key, primary_key_value),
-                               new_primary_key_value)
+    unique_columns = []
+    new_unique_column_values = []
+    for unique_column in unique_column_names:
+        new_unique_column_value = await async_call(partial(get_input, "New unique value " + unique_column + ": "))
+        if new_unique_column_value:
+            unique_columns.append((unique_column, copy_row[header_map[unique_column]]))
+            new_unique_column_values.append(new_unique_column_value)
+            copy_row[header_map[unique_column]] = new_unique_column_value
+        else:
+            return
 
-    copy_result = await run_in_executor(copy_row)
+    def _copy_row() -> bool:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.copy(state.selected_database, state.selected_table, unique_columns, new_unique_column_values)
+
+    copy_result = await run_in_executor(_copy_row)
     if copy_result == True:
-        new_row = result_rows[result_index]
-        new_row[primary_key_index] = new_primary_key_value
-        result_rows.append(new_row)
+        result_rows.append(copy_row)
         state.result = (result_headers, result_rows)
         await _show_result(settings, result_headers, result_rows)
 

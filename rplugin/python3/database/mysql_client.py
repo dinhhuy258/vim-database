@@ -80,11 +80,25 @@ class MySqlClient(SqlClient):
 
         return True
 
-    def copy(self, database: str, table: str, primary: Tuple[str, str], new_primary_key_value: str) -> bool:
-        primary_key, primary_key_value = primary
+    def copy(self, database: str, table: str, unique_columns: list, new_unique_column_values: list) -> bool:
+        num_unique_columns = len(unique_columns)
+        if num_unique_columns != len(new_unique_column_values):
+            log.info("[vim-databse] The lenght of unique columns must be equal to new unique column values")
+            return False
 
-        create_temporary_query = "CREATE TEMPORARY TABLE tmptable_1 SELECT * FROM " + table + " WHERE " + primary_key + " = " + primary_key_value + ";"
-        update_primary_key_temporary_query = "UPDATE tmptable_1 SET " + primary_key + " = " + new_primary_key_value + ";"
+        assign_query = ""
+        condition_query = ""
+        for index in range(num_unique_columns):
+            unique_column, unique_column_value = unique_columns[index]
+            new_unique_column_value = new_unique_column_values[index]
+            if index != 0:
+                assign_query += ", "
+                condition_query += " AND "
+            assign_query += unique_column + " = " + new_unique_column_value
+            condition_query += unique_column + " = " + unique_column_value
+
+        create_temporary_query = "CREATE TEMPORARY TABLE tmptable_1 SELECT * FROM " + table + " WHERE " + condition_query + ";"
+        update_primary_key_temporary_query = "UPDATE tmptable_1 SET " + assign_query + ";"
         insert_query = "INSERT INTO " + table + " SELECT * FROM tmptable_1;"
         delete_temporary_query = "DROP TEMPORARY TABLE IF EXISTS tmptable_1;"
         copy_query = create_temporary_query + update_primary_key_temporary_query + insert_query + delete_temporary_query
@@ -115,6 +129,15 @@ class MySqlClient(SqlClient):
             return None
 
         return result.data
+
+    def get_unique_columns(self, database: str, table: str) -> Optional[list]:
+        get_unique_keys_query = "SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = \'" + database + "\' AND TABLE_NAME = \'" + table + "\' AND NON_UNIQUE = 0"
+        result = self._run_query(get_unique_keys_query, ["--skip-column-names"])
+        if result.error:
+            log.info("[vim-databse] " + result.data)
+            return None
+
+        return result.data.splitlines()
 
     def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
         get_columns_query = "SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_NAME = \'" + table + "\' AND TABLE_SCHEMA=\'" + database + "\'"
