@@ -557,6 +557,51 @@ async def new(settings: Settings) -> None:
 
         query_window = await async_call(partial(open_query_window, settings))
         await async_call(partial(render, query_window, insert_query))
+    elif state.mode == Mode.TABLE:
+        create_table_query = ["CREATE TABLE table_name (", "\t", ")"]
+        query_window = await async_call(partial(open_query_window, settings))
+        await async_call(partial(render, query_window, create_table_query))
+
+
+async def show_update_query(settings: Settings) -> None:
+    if state.mode != Mode.TABLE_CONTENT_RESULT:
+        return
+    result_headers, result_rows = state.result
+    if len(result_headers) <= 1:
+        return
+
+    result_index = await async_call(_get_result_index)
+    if result_index is None:
+        return
+    result_row = result_rows[result_index]
+
+    def get_primary_key() -> Optional[str]:
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.get_primary_key(state.selected_database, state.selected_table)
+
+    primary_key = await run_in_executor(get_primary_key)
+    if primary_key is None:
+        log.info("[vim-database] No primary key found for table " + state.selected_table)
+        return
+
+    primary_key_index = -1
+    for header_index, header in enumerate(result_headers):
+        if header == primary_key:
+            primary_key_index = header_index
+            break
+
+    update_query = ["UPDATE " + state.selected_table + " SET "]
+    num_columns = len(result_headers)
+    for i in range(num_columns):
+        column = result_headers[i]
+        column_value = result_row[i]
+        if column != primary_key:
+            update_query.append("\t" + column + " = \'" + column_value + "\',")
+            first_update_column = True
+    update_query[-1] = update_query[-1][:-1]
+    update_query.append("WHERE " + primary_key + " = \'" + result_row[primary_key_index] + "\'")
+    query_window = await async_call(partial(open_query_window, settings))
+    await async_call(partial(render, query_window, update_query))
 
 
 async def copy(settings: Settings) -> None:
