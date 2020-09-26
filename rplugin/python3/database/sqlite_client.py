@@ -109,8 +109,42 @@ class SqliteClient(SqlClient):
         return None
 
     def get_unique_columns(self, database: str, table: str) -> Optional[list]:
-        return [self.get_primary_key(database, table)]
+        primary_key = self.get_primary_key(database, table)
+        return [] if primary_key is None else [primary_key]
 
     def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
-        log.info("[vim-databse] Not supported for sqlite")
-        return None
+        table_info = self.describe_table(database, table)
+        if table_info is None:
+            return None
+        headers = table_info[0]
+        columns = table_info[1:]
+        name_index = -1
+        default_value_index = -1
+
+        for index, header in enumerate(headers):
+            if header == "name":
+                name_index = index
+            elif header == "dflt_value":
+                default_value_index = index
+
+        if name_index == -1 or default_value_index == -1:
+            log.info("[vim-databse] Invalid column structure")
+            return None
+
+        insert_query = []
+        insert_query.append("INSERT INTO " + table + " (")
+        columns_len = len(columns)
+        for index, column in enumerate(columns):
+            insert_query.append("\t\'" + column[name_index] + "\'")
+            if index != columns_len - 1:
+                insert_query[-1] += ","
+        insert_query.append(") VALUES (")
+
+        for index, column in enumerate(columns):
+            insert_query.append("\t" + (column[default_value_index] if column[default_value_index] == "NULL" else
+                                        ("\'" + column[default_value_index] + "\'")))
+            if index != columns_len - 1:
+                insert_query[-1] += ","
+        insert_query.append(")")
+
+        return insert_query

@@ -159,7 +159,7 @@ class MySqlClient(SqlClient):
 
         for index, column in enumerate(columns):
             if column[1] != 'NULL' or (column[1] == 'NULL' and column[2].lower() == 'yes'):
-                insert_query.append("\t" + column[1])
+                insert_query.append("\t" + (column[1] if column[1] == 'NULL' else ("\'" + column[1] + "\'")))
             else:
                 insert_query.append("\t")
             if index != columns_len - 1:
