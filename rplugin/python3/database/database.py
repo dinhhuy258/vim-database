@@ -545,7 +545,10 @@ async def quit(settings: Settings) -> None:
 async def new(settings: Settings) -> None:
     if state.mode == Mode.CONNECTION:
         await new_connection(settings)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT:
+
+
+async def show_insert_query(settings: Settings) -> None:
+    if state.mode == Mode.TABLE_CONTENT_RESULT:
 
         def get_template_insert_query():
             sql_client = SqlClientFactory.create(state.selected_connection)
@@ -565,6 +568,9 @@ async def new(settings: Settings) -> None:
 
 async def show_update_query(settings: Settings) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
+        return
+    if state.filter_column is not None:
+        log.info("[vim-database] Can not show update query in filter column mode")
         return
     result_headers, result_rows = state.result
     if len(result_headers) <= 1:
@@ -602,6 +608,42 @@ async def show_update_query(settings: Settings) -> None:
     update_query.append("WHERE " + primary_key + " = \'" + result_row[primary_key_index] + "\'")
     query_window = await async_call(partial(open_query_window, settings))
     await async_call(partial(render, query_window, update_query))
+
+
+async def show_copy_query(settings: Settings) -> None:
+    if state.mode != Mode.TABLE_CONTENT_RESULT:
+        return
+    if state.filter_column is not None:
+        log.info("[vim-database] Can not show copy query in filter column mode")
+        return
+
+    result_headers, result_rows = state.result
+    if len(result_headers) <= 1:
+        return
+
+    result_index = await async_call(_get_result_index)
+    if result_index is None:
+        return
+    result_row = result_rows[result_index]
+
+    insert_query = ["INSERT INTO " + state.selected_table + " ("]
+    num_columns = len(result_headers)
+    for i in range(num_columns):
+        column_name = result_headers[i]
+        insert_query.append("\t" + column_name)
+        if i != num_columns - 1:
+            insert_query[-1] += ","
+
+    insert_query.append(") VALUES (")
+    for i in range(num_columns):
+        column_value = result_row[i]
+        insert_query.append("\t" + (column_value if column_value == 'NULL' else ("\'" + column_value + "\'")))
+        if i != num_columns - 1:
+            insert_query[-1] += ","
+    insert_query.append(")")
+
+    query_window = await async_call(partial(open_query_window, settings))
+    await async_call(partial(render, query_window, insert_query))
 
 
 async def copy(settings: Settings) -> None:

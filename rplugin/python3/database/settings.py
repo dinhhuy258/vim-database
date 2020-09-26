@@ -2,14 +2,16 @@ from dataclasses import dataclass
 from typing import Dict
 
 _DEFAULT_DATABASE_MAPPINGS = {
-    "show_connections": ["C"],
-    "show_databases": ["D"],
-    "show_tables": ["T"],
-    "show_query": ["R"],
+    "show_connections": ["<c-c>"],
+    "show_databases": ["<c-d>"],
+    "show_tables": ["<c-t>"],
+    "show_query": ["<c-r>"],
     "quit": ["q"],
     "delete": ["d"],
     "new": ["c"],
+    "show_insert_query": ["C"],
     "copy": ["p"],
+    "show_copy_query": ["P"],
     "edit": ["m"],
     "show_update_query": ["M"],
     "info": ["."],

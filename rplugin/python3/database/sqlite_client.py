@@ -135,7 +135,7 @@ class SqliteClient(SqlClient):
         insert_query.append("INSERT INTO " + table + " (")
         columns_len = len(columns)
         for index, column in enumerate(columns):
-            insert_query.append("\t\'" + column[name_index] + "\'")
+            insert_query.append("\t" + column[name_index])
             if index != columns_len - 1:
                 insert_query[-1] += ","
         insert_query.append(") VALUES (")

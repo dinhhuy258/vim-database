@@ -19,6 +19,8 @@ from .database import (
     copy,
     edit,
     show_update_query,
+    show_copy_query,
+    show_insert_query,
     info,
     select,
     new_filter,
@@ -118,6 +120,14 @@ class DatabasePlugin(object):
     @function('VimDatabase_show_update_query')
     def show_update_query_function(self, args: Sequence[Any]) -> None:
         self._run(show_update_query)
+
+    @function('VimDatabase_show_copy_query')
+    def show_copy_query_function(self, args: Sequence[Any]) -> None:
+        self._run(show_copy_query)
+
+    @function('VimDatabase_show_insert_query')
+    def show_insert_query_function(self, args: Sequence[Any]) -> None:
+        self._run(show_insert_query)
 
     @function('VimDatabase_info')
     def info_function(self, args: Sequence[Any]) -> None:
