@@ -1,4 +1,3 @@
-import re
 from typing import Optional, Tuple
 from .sql_client import SqlClient
 from .connection import Connection
@@ -16,6 +15,7 @@ class MySqlClient(SqlClient):
             "mysql",
             "--unbuffered",
             "--batch",
+            "--connect-timeout=10",
             "--host=" + self.connection.host,
             "--port=" + self.connection.port,
             "--user=" + self.connection.username,

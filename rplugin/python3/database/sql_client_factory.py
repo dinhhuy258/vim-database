@@ -1,6 +1,7 @@
 from .sql_client import SqlClient
 from .sqlite_client import SqliteClient
 from .mysql_client import MySqlClient
+from .psql_client import PostgreSqlClient
 from .connection import Connection, ConnectionType
 
 
@@ -11,4 +12,6 @@ class SqlClientFactory(object):
             return SqliteClient(connection)
         if connection.connection_type == ConnectionType.MYSQL:
             return MySqlClient(connection)
+        if connection.connection_type == ConnectionType.POSTGRESQL:
+            return PostgreSqlClient(connection)
         assert 0, "Bad sql client creation: " + connection.connection_type.to_string()

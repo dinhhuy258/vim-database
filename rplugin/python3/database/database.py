@@ -104,7 +104,7 @@ def _new_sqlite_connection() -> Optional[Connection]:
                       database=file)
 
 
-def _new_mysql_connection() -> Optional[Connection]:
+def _new_mysql_or_postgresql_connection(connection_type: ConnectionType) -> Optional[Connection]:
     name = get_input("Name: ")
     if not name:
         return None
@@ -125,7 +125,7 @@ def _new_mysql_connection() -> Optional[Connection]:
         return None
 
     return Connection(name=name,
-                      connection_type=ConnectionType.MYSQL,
+                      connection_type=connection_type,
                       host=host,
                       port=port,
                       username=username,
@@ -135,13 +135,15 @@ def _new_mysql_connection() -> Optional[Connection]:
 
 def _new_connection() -> Optional[Connection]:
     try:
-        connection_type_value = get_input("Connection type (1: SQLite, 2: MySQL): ")
+        connection_type_value = get_input("Connection type (1: SQLite, 2: MySQL, 3: PostgreSQL): ")
         if connection_type_value:
             connection_type = ConnectionType(int(connection_type_value))
             if connection_type is ConnectionType.SQLITE:
                 return _new_sqlite_connection()
             elif connection_type is ConnectionType.MYSQL:
-                return _new_mysql_connection()
+                return _new_mysql_or_postgresql_connection(ConnectionType.MYSQL)
+            elif connection_type is ConnectionType.POSTGRESQL:
+                return _new_mysql_or_postgresql_connection(ConnectionType.POSTGRESQL)
     except:
         log.info('[vim-database] Invalid connection type')
     return None
@@ -202,7 +204,7 @@ async def _delete_result(settings: Settings) -> None:
     def delete() -> bool:
         sql_client = SqlClientFactory.create(state.selected_connection)
         return sql_client.delete(state.selected_database, state.selected_table,
-                                 (primary_key, "\"" + primary_key_value + "\""))
+                                 (primary_key, "\'" + primary_key_value + "\'"))
 
     delete_result = await run_in_executor(delete)
     if delete_result == True:
@@ -746,8 +748,8 @@ async def edit(settings: Settings) -> None:
         def update() -> bool:
             sql_client = SqlClientFactory.create(state.selected_connection)
             return sql_client.update(state.selected_database, state.selected_table,
-                                     (edit_column, "\"" + new_value + "\""),
-                                     (primary_key, "\"" + primary_key_value + "\""))
+                                     (edit_column, "\'" + new_value + "\'"),
+                                     (primary_key, "\'" + primary_key_value + "\'"))
 
         update_result = await run_in_executor(update)
         if update_result == True:
