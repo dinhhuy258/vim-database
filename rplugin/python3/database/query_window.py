@@ -2,11 +2,16 @@ from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
 from typing import Tuple, Iterator, Sequence, Any, Optional
 from .utils import string_compose
+from .logging import log
 from .nvim import (
     call_atomic,
+    execute,
     get_option,
     create_buffer,
+    set_buffer_var,
+    get_buffer_var,
     open_window,
+    get_window_info,
     set_window_option,
     find_windows_in_tab,
     get_buffer_in_window,
@@ -19,23 +24,32 @@ from .settings import Settings
 _VIM_DATABASE_QUERY_FILE_TYPE = "VimDatabaseQuery"
 _VIM_DATABASE_QUERY_TITLE = "[vim-database] Query"
 _VIM_DATABASE_QUERY_BORDER_CHARS = ['─', '│', '─', '│', '┌', '┐', '┘', '└']
+_query_buffer: Buffer = None
 
 
-def _find_query_window_in_tab() -> Iterator[Window]:
+def _find_window_by_winid(winid: int) -> Optional[Window]:
+    for window in find_windows_in_tab():
+        if window.handle == winid:
+            return window
+
+    return None
+
+
+def _find_query_window() -> Optional[Window]:
     for window in find_windows_in_tab():
         buffer: Buffer = get_buffer_in_window(window)
-        buffer_file_type = get_buffer_option(buffer, 'filetype')
+        buffer_file_type = get_buffer_option(buffer, "filetype")
         if buffer_file_type == _VIM_DATABASE_QUERY_FILE_TYPE:
-            yield window
+            return window
+
+    return None
 
 
 def _find_query_buffer() -> Optional[Buffer]:
-    for window in find_windows_in_tab():
-        buffer: Buffer = get_buffer_in_window(window)
-        buffer_file_type = get_buffer_option(buffer, 'filetype')
-        buffer_modifiable = get_buffer_option(buffer, 'modifiable')
-        if buffer_file_type == _VIM_DATABASE_QUERY_FILE_TYPE and buffer_modifiable == True:
-            return buffer
+    query_window = _find_query_window()
+    if query_window is not None:
+        return query_window.buffer
+
     return None
 
 
@@ -49,34 +63,40 @@ def _buf_set_lines(buffer: Buffer, lines: list, modifiable: bool) -> Iterator[Tu
 
 
 def close_query_window() -> None:
-    windows: Iterator[Window] = _find_query_window_in_tab()
-    for window in windows:
-        close_window(window, True)
+    query_window = _find_query_window()
+    if query_window is not None:
+        close_window(query_window, True)
 
 
 def open_query_window(settings: Settings) -> Optional[Window]:
-    query_windows = _find_query_window_in_tab()
-    for window in query_windows:
-        buffer: Buffer = get_buffer_in_window(window)
-        modifiable = get_buffer_option(buffer, 'modifiable')
-        if modifiable:
-            return window
+    query_window = _find_query_window()
+    if query_window is not None:
+        return query_window
 
-    buffer = create_buffer(
-        settings.query_mappings, {
-            "buftype": "nofile",
-            "bufhidden": "hide",
-            "swapfile": False,
-            "buflisted": False,
-            "modifiable": True,
-            "filetype": _VIM_DATABASE_QUERY_FILE_TYPE,
-            'syntax': 'sql',
-        })
+    global _query_buffer
+    if _query_buffer is None:
+        _query_buffer = create_buffer(
+            settings.query_mappings, {
+                "buftype": "nofile",
+                "bufhidden": "hide",
+                "swapfile": False,
+                "buflisted": False,
+                "modifiable": True,
+                "filetype": _VIM_DATABASE_QUERY_FILE_TYPE,
+                "syntax": "sql",
+            })
+
+    border_winid = get_buffer_var(_query_buffer.handle, "border_winid", -1)
+    if len(get_window_info(border_winid)) != 0:
+        border_window = _find_window_by_winid(border_winid)
+        if border_window is not None:
+            close_window(border_window, True)
+
     height = int((get_option("lines") - 2) / 1.5)
     width = int(get_option("columns") / 1.5)
     row = int((get_option("lines") - height) / 2)
     col = int((get_option("columns") - width) / 2)
-    window = open_window(buffer, True, {
+    window = open_window(_query_buffer, True, {
         "relative": "editor",
         "width": width,
         "height": height,
@@ -104,7 +124,6 @@ def open_query_window(settings: Settings) -> Optional[Window]:
         "swapfile": False,
         "buflisted": False,
         "modifiable": False,
-        "filetype": _VIM_DATABASE_QUERY_FILE_TYPE,
     })
 
     border_window = open_window(
@@ -118,9 +137,15 @@ def open_query_window(settings: Settings) -> Optional[Window]:
             "style": "minimal",
             "focusable": False,
         })
+
+    execute("autocmd BufHidden <buffer=" + str(_query_buffer.handle) + "> ++once call CloseVimDatabaseQueryBorder(" +
+            str(_query_buffer.handle) + ")")
+    execute("autocmd BufLeave <buffer=" + str(_query_buffer.handle) + "> ++once call CloseVimDatabaseQuery(" +
+            str(_query_buffer.handle) + ")")
+    set_buffer_var(_query_buffer.handle, "border_winid", border_window.handle)
     set_window_option(border_window, "winhl", "Normal:Normal")
     set_window_option(border_window, "cursorcolumn", False)
-    set_window_option(border_window, "colorcolumn", '')
+    set_window_option(border_window, "colorcolumn", "")
 
     instruction = _buf_set_lines(border_buffer, border_lines, False)
     call_atomic(*instruction)
@@ -137,3 +162,9 @@ def get_query() -> Optional[str]:
     sql_query = ' '.join(buffer_content).strip()
 
     return None if len(sql_query) == 0 else sql_query
+
+
+def is_query_window_opened() -> bool:
+    query_window = _find_query_window()
+
+    return query_window is not None

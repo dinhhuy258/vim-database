@@ -30,6 +30,7 @@ from .query_window import (
     open_query_window,
     close_query_window,
     get_query,
+    is_query_window_opened,
 )
 from .nvim import (
     async_call,
@@ -834,6 +835,14 @@ async def refresh(settings: Settings) -> None:
         await _show_table_content(settings, state.selected_table)
     elif state.mode == Mode.INFO_RESULT:
         await _show_table_info(settings, state.selected_table)
+
+
+async def toggle_query(settings: Settings) -> None:
+    is_opened = await async_call(is_query_window_opened)
+    if is_opened:
+        await quit_query(settings)
+    else:
+        await show_query(settings)
 
 
 async def show_query(settings: Settings) -> None:

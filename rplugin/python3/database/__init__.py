@@ -30,6 +30,7 @@ from .database import (
     refresh,
     resize_database_window,
     show_query,
+    toggle_query,
     quit_query,
     run_query,
 )
@@ -76,6 +77,10 @@ class DatabasePlugin(object):
     @command('VDToggleDatabase')
     def toggle_command(self) -> None:
         self._run(toggle)
+
+    @command('VDToggleQuery')
+    def toggle_query_command(self) -> None:
+        self._run(toggle_query)
 
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:

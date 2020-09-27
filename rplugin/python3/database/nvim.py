@@ -35,16 +35,16 @@ def _buf_set_lines(buffer: Buffer, lines: list) -> Iterator[Tuple[str, Sequence[
         yield "nvim_buf_set_option", (buffer, "modifiable", False)
 
 
+def init_nvim(nvim: Nvim) -> None:
+    global _nvim
+    _nvim = nvim
+
+
 def call_atomic(*instructions: Tuple[str, Sequence[Any]]) -> None:
     inst = tuple((f"{instruction}", args) for instruction, args in instructions)
     out, error = _nvim.api.call_atomic(inst)
     if error:
         raise NvimError(error)
-
-
-def init_nvim(nvim: Nvim) -> None:
-    global _nvim
-    _nvim = nvim
 
 
 def async_call(func: Callable[[], T]) -> Awaitable[T]:
@@ -60,6 +60,10 @@ def async_call(func: Callable[[], T]) -> Awaitable[T]:
 
     _nvim.async_call(run)
     return future
+
+
+def execute(command: str) -> Any:
+    return _nvim.funcs.execute(command)
 
 
 def find_windows_in_tab() -> Iterator[Window]:
@@ -90,6 +94,14 @@ def create_buffer(keymaps: Dict[str, Sequence[str]] = dict(), options: Dict[str,
     return buffer
 
 
+def set_buffer_var(buffer_handle: int, var_name: str, var_value: Any) -> None:
+    _nvim.funcs.setbufvar(buffer_handle, var_name, var_value)
+
+
+def get_buffer_var(buffer_handle: int, var_name: str, default_value: Any) -> None:
+    _nvim.funcs.getbufvar(buffer_handle, var_name, default_value)
+
+
 def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dict()) -> Window:
     split_right = _nvim.api.get_option("splitright")
     split_below = _nvim.api.get_option("splitbelow")
@@ -114,6 +126,10 @@ def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dic
         _nvim.api.win_set_option(window, option_name, option_value)
 
     return window
+
+
+def get_window_info(winid: int) -> list():
+    return _nvim.funcs.getwininfo(winid)
 
 
 def open_window(buffer: Buffer, enter: bool, opts: Dict[str, Any]) -> Window:
