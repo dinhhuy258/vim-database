@@ -87,6 +87,47 @@ async def _show_result(settings: Settings, headers: list, rows: list) -> None:
     await async_call(partial(set_cursor, window, (4, 0)))
 
 
+def _get_table_datas_from_state() -> Tuple[list, list, int]:
+    table_datas = []
+    selected_index = 0
+    for index, table in enumerate(state.tables):
+        table_datas.append([table])
+        if table == state.selected_table:
+            selected_index = index
+
+    return (["Table"], table_datas, selected_index)
+
+
+def _get_database_datas_from_state() -> Tuple[list, list, int]:
+    database_datas = []
+    selected_index = 0
+    for index, database in enumerate(state.databases):
+        if state.selected_database == database:
+            database_datas.append([database + " (*)"])
+            selected_index = index
+        else:
+            database_datas.append([database])
+
+    return (["Database"], database_datas, selected_index)
+
+
+def _get_connection_datas_from_state() -> Tuple[list, list, int]:
+    connection_datas = []
+    selected_index = 0
+    for index, connection in enumerate(state.connections):
+        if state.selected_connection.name == connection.name:
+            selected_index = index
+        connection_datas.append([
+            connection.name + " (*)" if state.selected_connection.name == connection.name else connection.name,
+            connection.connection_type.to_string(), "" if connection.host is None else connection.host,
+            "" if connection.port is None else connection.port,
+            "" if connection.username is None else connection.username,
+            "" if connection.password is None else connection.password, connection.database
+        ])
+
+    return (["Name", "Type", "Host", "Port", "Username", "Password", "Database"], connection_datas, selected_index)
+
+
 def _new_sqlite_connection() -> Optional[Connection]:
     name = get_input("Name: ")
     if not name:
@@ -303,7 +344,10 @@ async def _select_connection(settings: Settings) -> None:
     state.selected_database = state.selected_connection.database
 
     # Update connections table
-    await show_connections(settings)
+    window = await async_call(partial(open_database_window, settings))
+    connection_headers, connection_rows, selected_index = _get_connection_datas_from_state()
+    await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
+    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def _select_database(settings: Settings) -> None:
@@ -317,6 +361,11 @@ async def _select_database(settings: Settings) -> None:
     state.selected_database = state.databases[database_index]
 
     # Update databases table
+    window = await async_call(partial(open_database_window, settings))
+    database_headers, database_rows, selected_index = _get_database_datas_from_state()
+    await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
+    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
+
     await show_databases(settings)
 
 
@@ -457,30 +506,19 @@ async def toggle(settings: Settings) -> None:
 
 async def show_connections(settings: Settings) -> None:
     window = await async_call(partial(open_database_window, settings))
-    connection_headers = ["Name", "Type", "Host", "Port", "Username", "Password", "Database"]
 
     state.mode = Mode.CONNECTION
 
-    def get_connection_datas():
-        connections = get_connections()
-        state.connections = list(connections)
-        if state.selected_connection is None:
-            state.selected_connection = get_default_connection()
-        connection_datas = []
-        for connection in state.connections:
-            connection_datas.append([
-                connection.name + " (*)" if state.selected_connection.name == connection.name else connection.name,
-                connection.connection_type.to_string(), "" if connection.host is None else connection.host,
-                "" if connection.port is None else connection.port,
-                "" if connection.username is None else connection.username,
-                "" if connection.password is None else connection.password, connection.database
-            ])
-        return connection_datas
+    def _get_connections() -> list:
+        return list(get_connections())
 
-    connection_datas = await run_in_executor(get_connection_datas)
+    state.connections = await run_in_executor(_get_connections)
+    if state.selected_connection is None:
+        state.selected_connection = get_default_connection()
 
-    await async_call(partial(render, window, ascii_table(connection_headers, connection_datas)))
-    await async_call(partial(set_cursor, window, (4, 0)))
+    connection_headers, connection_rows, selected_index = _get_connection_datas_from_state()
+    await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
+    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def show_databases(settings: Settings) -> None:
@@ -496,24 +534,16 @@ async def show_databases(settings: Settings) -> None:
         state.selected_database = state.selected_connection.database
 
     window = await async_call(partial(open_database_window, settings))
-    database_headers = ["Database"]
 
-    def get_database_datas():
-        database_datas = []
+    def _get_databases():
         sql_client = SqlClientFactory.create(state.selected_connection)
-        databases = sql_client.get_databases()
-        state.databases = databases
-        for database in databases:
-            if state.selected_database == database:
-                database_datas.append([database + " (*)"])
-            else:
-                database_datas.append([database])
-        return database_datas
+        return sql_client.get_databases()
 
-    database_datas = await run_in_executor(get_database_datas)
+    state.databases = await run_in_executor(_get_databases)
 
-    await async_call(partial(render, window, ascii_table(database_headers, database_datas)))
-    await async_call(partial(set_cursor, window, (4, 0)))
+    database_headers, database_rows, selected_index = _get_database_datas_from_state()
+    await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
+    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def show_tables(settings: Settings) -> None:
@@ -533,19 +563,17 @@ async def show_tables(settings: Settings) -> None:
 
     state.mode = Mode.TABLE
     window = await async_call(partial(open_database_window, settings))
-    table_headers = ["Table"]
 
-    def get_tables():
+    def _get_tables():
         sql_client = SqlClientFactory.create(state.selected_connection)
-        state.tables = list(
+        return list(
             filter(lambda table: state.filter_pattern is None or re.search(state.filter_pattern, table),
                    sql_client.get_tables(state.selected_database)))
 
-        return list(map(lambda table: [table], state.tables))
-
-    tables = await run_in_executor(get_tables)
-    await async_call(partial(render, window, ascii_table(table_headers, tables)))
-    await async_call(partial(set_cursor, window, (4, 0)))
+    state.tables = await run_in_executor(_get_tables)
+    table_headers, table_rows, selected_index = _get_table_datas_from_state()
+    await async_call(partial(render, window, ascii_table(table_headers, table_rows)))
+    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def quit(settings: Settings) -> None:
