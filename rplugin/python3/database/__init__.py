@@ -25,6 +25,7 @@ from .database import (
     select,
     new_filter,
     filter_column,
+    sort,
     clear_filter_column,
     clear_filter,
     refresh,
@@ -149,6 +150,14 @@ class DatabasePlugin(object):
     @function('VimDatabase_filter_column')
     def filter_column_function(self, args: Sequence[Any]) -> None:
         self._run(filter_column)
+
+    @function('VimDatabase_sort')
+    def sort_function(self, args: Sequence[Any]) -> None:
+        self._run(sort, "ASC")
+
+    @function('VimDatabase_sort_reverse')
+    def sort_reverse_function(self, args: Sequence[Any]) -> None:
+        self._run(sort, "DESC")
 
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, args: Sequence[Any]) -> None:

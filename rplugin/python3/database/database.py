@@ -63,6 +63,7 @@ class State:
     filter_pattern: Optional[str]
     filter_column: Optional[str]
     filter_condition: Optional[str]
+    order: Optional[Tuple[str, str]]
 
 
 state: State = State(mode=Mode.CONNECTION,
@@ -75,7 +76,8 @@ state: State = State(mode=Mode.CONNECTION,
                      result=None,
                      filter_pattern=None,
                      filter_column=None,
-                     filter_condition=None)
+                     filter_condition=None,
+                     order=None)
 
 
 async def _show_result(settings: Settings, headers: list, rows: list) -> None:
@@ -266,6 +268,9 @@ async def _show_table_content(settings: Settings, table: str) -> None:
         query = query + " FROM " + table
         if state.filter_condition is not None:
             query = query + " WHERE " + state.filter_condition
+        if state.order is not None:
+            order_column, order_orientation = state.order
+            query = query + " ORDER BY " + order_column + " " + order_orientation
         query = query + " LIMIT " + str(settings.results_limit)
         return sql_client.run_query(state.selected_database, query)
 
@@ -274,6 +279,7 @@ async def _show_table_content(settings: Settings, table: str) -> None:
         # Error
         state.filter_condition = None
         state.filter_column = None
+        state.order = None
         return
 
     table_empty = len(table_content) == 0
@@ -317,6 +323,7 @@ async def _select_database(settings: Settings) -> None:
 async def _select_table(settings: Settings) -> None:
     state.filter_condition = None
     state.filter_column = None
+    state.order = None
     table_index = await async_call(_get_table_index)
     if table_index is None:
         return
@@ -806,6 +813,21 @@ async def filter_column(settings: Settings) -> None:
     if filter_column:
         state.filter_column = filter_column
         await _show_table_content(settings, state.selected_table)
+
+
+async def sort(settings: Settings, orientation: str) -> None:
+    if state.mode != Mode.TABLE_CONTENT_RESULT:
+        return
+    result_index = await async_call(_get_result_row_and_column)
+    if result_index is None:
+        return
+
+    result_headers, result_rows = state.result
+    _, column = result_index
+    order_column = result_headers[column]
+    state.order = (order_column, orientation)
+
+    await _show_table_content(settings, state.selected_table)
 
 
 async def clear_filter_column(settings: Settings) -> None:
