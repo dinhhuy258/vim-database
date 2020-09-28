@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Dict
 
 _DEFAULT_DATABASE_MAPPINGS = {
-    "show_connections": ["<c-c>"],
-    "show_databases": ["<c-d>"],
-    "show_tables": ["<c-t>"],
-    "show_query": ["<c-r>"],
+    "show_connections": ["<Leader>c"],
+    "show_databases": ["<Leader>d"],
+    "show_tables": ["<Leader>t"],
+    "show_query": ["<Leader>r"],
     "quit": ["q"],
     "delete": ["d"],
     "new": ["c"],
