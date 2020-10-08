@@ -31,6 +31,20 @@ def _find_database_window_in_tab() -> Optional[Window]:
     return None
 
 
+def _get_window_layout(window_layout: str) -> WindowLayout:
+    if window_layout == "left":
+        return WindowLayout.LEFT
+    if window_layout == "right":
+        return WindowLayout.RIGHT
+    if window_layout == "above":
+        return WindowLayout.ABOVE
+    if window_layout == "below":
+        return WindowLayout.BELOW
+
+    # Fallback layout
+    return WindowLayout.LEFT
+
+
 def _open_database_window(settings: Settings) -> Window:
     buffer = create_buffer(
         settings.mappings, {
@@ -41,7 +55,7 @@ def _open_database_window(settings: Settings) -> Window:
             'modifiable': False,
             'filetype': _VIM_DATABASE_FILE_TYPE,
         })
-    window = create_window(100, WindowLayout.LEFT, {
+    window = create_window(settings.window_size, _get_window_layout(settings.window_layout), {
         'list': False,
         'number': False,
         'relativenumber': False,

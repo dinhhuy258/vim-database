@@ -22,7 +22,9 @@ T = TypeVar("T")
 
 class WindowLayout(Enum):
     LEFT = 1
-    BELOW = 2
+    RIGHT = 2
+    ABOVE = 3
+    BELOW = 4
 
 
 def _buf_set_lines(buffer: Buffer, lines: list) -> Iterator[Tuple[str, Sequence[Any]]]:
@@ -114,8 +116,15 @@ def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dic
     if layout is WindowLayout.LEFT:
         _nvim.api.set_option("splitright", False)
         _nvim.command(f"{size}vsplit")
-    else:
+    elif layout is WindowLayout.RIGHT:
+        _nvim.api.set_option("splitright", True)
+        _nvim.command(f"{size}vsplit")
+    elif layout is WindowLayout.BELOW:
         _nvim.api.set_option("splitbelow", True)
+        _nvim.command(f"{size}split")
+    else:
+        # Above layout
+        _nvim.api.set_option("splitbelow", False)
         _nvim.command(f"{size}split")
 
     _nvim.api.set_option("splitright", split_right)

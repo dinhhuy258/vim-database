@@ -36,6 +36,8 @@ _DEFAULT_DATABASE_QUERY_MAPPINGS = {
 @dataclass(frozen=True)
 class Settings:
     results_limit: int
+    window_layout: str
+    window_size: int
     mappings: Dict
     query_mappings: Dict
 
@@ -49,4 +51,8 @@ async def load_settings() -> Settings:
         f"VimDatabaseQuery_{function}": query_mappings for function, query_mappings in query_mappings.items()
     }
 
-    return Settings(results_limit=50, mappings=mappings, query_mappings=query_mappings)
+    return Settings(results_limit=50,
+                    window_layout="left",
+                    window_size=100,
+                    mappings=mappings,
+                    query_mappings=query_mappings)
