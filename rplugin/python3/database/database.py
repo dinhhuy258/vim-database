@@ -964,13 +964,15 @@ async def run_query(settings: Settings) -> None:
         return
 
     if len(query_result) < 2:
+        await async_call(close_query_window)
+        headers = []
         if query.lower().startswith("select "):
-            # Query empty result
-            await async_call(close_query_window)
-            await _show_result(settings, ["Empty"], [])
-            return
+            headers = ["Empty"]
+        else:
+            headers = ["Query executed successfully"]
 
-        log.info("[vim-database] Query executed successfully")
+        await async_call(close_query_window)
+        await _show_result(settings, headers, [])
         return
     state.selected_table = None
     state.result = None
