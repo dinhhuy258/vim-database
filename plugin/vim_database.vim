@@ -31,5 +31,8 @@ endfunction
 if get(g:, 'huy_duong_workspace', 0) == 1
   nnoremap <silent> <F3> :VDToggleDatabase<CR>
   nnoremap <silent> <F4> :VDToggleQuery<CR>
+
+  let g:vim_database_window_layout = "below"
+  let g:vim_database_window_size = 25
 endif
 
