@@ -13,6 +13,7 @@ from .database import (
     show_databases,
     show_tables,
     toggle,
+    lsp_config,
     quit,
     delete,
     new,
@@ -82,6 +83,10 @@ class DatabasePlugin(object):
     @command('VDToggleQuery')
     def toggle_query_command(self) -> None:
         self._run(toggle_query)
+
+    @command('VDLSPConfig')
+    def lsp_config_command(self) -> None:
+        self._run(lsp_config)
 
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:

@@ -9,6 +9,7 @@ from .utils import is_file_exists, run_in_executor
 from .ascii_table import ascii_table
 from .sql_client import SqlClient
 from .sql_client_factory import SqlClientFactory
+from .sql_language_server_config import switch_database_connection as lsp_switch_database_connection
 from .connection import (
     Connection,
     ConnectionType,
@@ -893,6 +894,24 @@ async def toggle_query(settings: Settings) -> None:
         await quit_query(settings)
     else:
         await show_query(settings)
+
+
+async def lsp_config(settings: Settings) -> None:
+    if state.selected_connection is None:
+        state.selected_connection = await run_in_executor(get_default_connection)
+
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    if state.selected_database is None:
+        state.selected_database = state.selected_connection.database
+
+    if state.selected_database is None:
+        log.info("[vim-database] No database found")
+        return
+
+    await run_in_executor(partial(lsp_switch_database_connection, state.selected_connection, state.selected_database))
 
 
 async def show_query(settings: Settings) -> None:

@@ -21,7 +21,6 @@ from .nvim import (
 )
 from .settings import Settings
 
-_VIM_DATABASE_QUERY_FILE_TYPE = "VimDatabaseQuery"
 _VIM_DATABASE_QUERY_TITLE = "[vim-database] Query"
 _VIM_DATABASE_QUERY_BORDER_CHARS = ['─', '│', '─', '│', '┌', '┐', '┘', '└']
 _query_buffer: Buffer = None
@@ -36,10 +35,12 @@ def _find_window_by_winid(winid: int) -> Optional[Window]:
 
 
 def _find_query_window() -> Optional[Window]:
+    if _query_buffer is None:
+        return None
+
     for window in find_windows_in_tab():
         buffer: Buffer = get_buffer_in_window(window)
-        buffer_file_type = get_buffer_option(buffer, "filetype")
-        if buffer_file_type == _VIM_DATABASE_QUERY_FILE_TYPE:
+        if buffer.handle == _query_buffer.handle:
             return window
 
     return None
@@ -77,13 +78,12 @@ def open_query_window(settings: Settings) -> Optional[Window]:
     if _query_buffer is None:
         _query_buffer = create_buffer(
             settings.query_mappings, {
-                "buftype": "nofile",
+                "buftype": "",
                 "bufhidden": "hide",
                 "swapfile": False,
                 "buflisted": False,
                 "modifiable": True,
-                "filetype": _VIM_DATABASE_QUERY_FILE_TYPE,
-                "syntax": "sql",
+                "filetype": "sql"
             })
 
     border_winid = get_buffer_var(_query_buffer.handle, "border_winid", -1)
