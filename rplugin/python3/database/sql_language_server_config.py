@@ -65,28 +65,28 @@ def switch_database_connection(connection: Connection, database: str) -> None:
             "adapter": "mysql",
             "host": connection.host,
             "port": connection.port,
-            "user": connection.user,
+            "user": connection.username,
             "password": connection.password,
-            "database": selected_database,
+            "database": database,
             "projectPaths": [current_project_path]
         }
     elif connection.connection_type == ConnectionType.POSTGRESQL:
         new_config_connection = {
             "name": config_connection_name,
-            "adapter": "prostgres",
+            "adapter": "postgres",
             "host": connection.host,
             "port": connection.port,
-            "user": connection.user,
+            "user": connection.username,
             "password": connection.password,
-            "database": selected_database,
+            "database": database,
             "projectPaths": [current_project_path]
         }
     else:
         log.info("[vim-database] Connection type is not supported")
         return
 
-    for index, connection in enumerate(config_connections):
-        if connection.name == config_connection_name:
+    for index, config_connection in enumerate(config_connections):
+        if config_connection_name == config_connection["name"]:
             del config_connections[index]
             break
     config_connections.append(new_config_connection)
