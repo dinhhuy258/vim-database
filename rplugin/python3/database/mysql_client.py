@@ -94,8 +94,8 @@ class MySqlClient(SqlClient):
             if index != 0:
                 assign_query += ", "
                 condition_query += " AND "
-            assign_query += unique_column + " = " + new_unique_column_value
-            condition_query += unique_column + " = " + unique_column_value
+            assign_query += unique_column + " = " + (new_unique_column_value if new_unique_column_value == 'NULL' else ("\'" + new_unique_column_value + "\'"))
+            condition_query += unique_column + " = " + (unique_column_value if unique_column_value == 'NULL' else ("\'" + unique_column_value + "\'"))
 
         create_temporary_query = "CREATE TEMPORARY TABLE tmptable_1 SELECT * FROM " + table + " WHERE " + condition_query + ";"
         update_primary_key_temporary_query = "UPDATE tmptable_1 SET " + assign_query + ";"
