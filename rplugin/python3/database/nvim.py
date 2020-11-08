@@ -49,6 +49,10 @@ def call_atomic(*instructions: Tuple[str, Sequence[Any]]) -> None:
         raise NvimError(error)
 
 
+def call_function(name, argument) -> Any:
+    return _nvim.call(name, argument)
+
+
 def async_call(func: Callable[[], T]) -> Awaitable[T]:
     future: Future = Future()
 

@@ -34,6 +34,7 @@ from .query_window import (
     is_query_window_opened,
 )
 from .nvim import (
+    call_function,
     async_call,
     confirm,
     get_input,
@@ -302,6 +303,18 @@ async def _describe_table(settings: Settings) -> None:
     await _show_table_info(settings, table)
 
 
+async def show_table_content(settings: Settings, table: str) -> None:
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    if state.selected_database is None:
+        log.info("[vim-database] No database found")
+        return
+
+    await _show_table_content(settings, table)
+
+
 async def _show_table_content(settings: Settings, table: str) -> None:
 
     def get_table_content():
@@ -545,6 +558,32 @@ async def show_databases(settings: Settings) -> None:
     database_headers, database_rows, selected_index = _get_database_datas_from_state()
     await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
+
+
+async def list_tables_fzf(settings: Settings) -> None:
+    if state.selected_connection is None:
+        state.selected_connection = await run_in_executor(get_default_connection)
+
+    if state.selected_connection is None:
+        log.info("[vim-database] No connection found")
+        return
+
+    if state.selected_database is None:
+        state.selected_database = state.selected_connection.database
+
+    if state.selected_database is None:
+        log.info("[vim-database] No database found")
+        return
+
+    def _get_tables():
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return list(
+            filter(lambda table: state.filter_pattern is None or re.search(state.filter_pattern, table),
+                   sql_client.get_tables(state.selected_database)))
+
+    tables = await run_in_executor(_get_tables)
+
+    await async_call(partial(call_function, "VimDatabaseSelectTables", tables))
 
 
 async def show_tables(settings: Settings) -> None:

@@ -28,9 +28,23 @@ function! CloseVimDatabaseQueryBorder(bufnr, ...) abort
   call setbufvar(a:bufnr, 'border_winid', -1)
 endfunction
 
+function! s:VimDatabaseSelectTable(table) abort
+  call VimDatabase_select_table_fzf(a:table)
+endfunction
+
+function! VimDatabaseSelectTables(tables) abort
+ call fzf#run(fzf#wrap({
+        \ 'source': a:tables,
+        \ 'sink': function('s:VimDatabaseSelectTable')
+        \ }))
+endfunction
+
+command! VimDatabaseListTablesFzf call VimDatabase_list_tables_fzf()
+
 if get(g:, 'huy_duong_workspace', 0) == 1
   nnoremap <silent> <F3> :VDToggleDatabase<CR>
   nnoremap <silent> <F4> :VDToggleQuery<CR>
+  nmap <silent> <Leader>fd :VimDatabaseListTablesFzf<CR>
 
   let g:vim_database_window_layout = "below"
   let g:vim_database_window_size = 25

@@ -35,6 +35,8 @@ from .database import (
     toggle_query,
     quit_query,
     run_query,
+    list_tables_fzf,
+    show_table_content,
 )
 
 
@@ -179,6 +181,14 @@ class DatabasePlugin(object):
     @function('VimDatabase_smaller')
     def smaller_function(self, args: Sequence[Any]) -> None:
         self._run(resize_database_window, -2)
+
+    @function('VimDatabase_list_tables_fzf')
+    def list_tables_fzf_function(self, args: Sequence[Any]) -> None:
+        self._run(list_tables_fzf)
+
+    @function('VimDatabase_select_table_fzf')
+    def select_table_fzf_table(self, args: Sequence[Any]) -> None:
+        self._run(show_table_content, str(args[0]))
 
     @function('VimDatabaseQuery_quit')
     def quit_query_function(self, args: Sequence[Any]) -> None:
