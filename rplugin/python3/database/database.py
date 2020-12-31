@@ -577,9 +577,7 @@ async def list_tables_fzf(settings: Settings) -> None:
 
     def _get_tables():
         sql_client = SqlClientFactory.create(state.selected_connection)
-        return list(
-            filter(lambda table: state.filter_pattern is None or re.search(state.filter_pattern, table),
-                   sql_client.get_tables(state.selected_database)))
+        return sql_client.get_tables(state.selected_database)
 
     tables = await run_in_executor(_get_tables)
 
