@@ -1,9 +1,9 @@
 import os
 from typing import Optional, Tuple
 from .sql_client import SqlClient
-from .connection import Connection
-from .utils import CommandResult, run_command
-from .logging import log
+from ..connection import Connection
+from ..utils.commands import CommandResult, run_command
+from ..logging import log
 
 
 class PostgreSqlClient(SqlClient):

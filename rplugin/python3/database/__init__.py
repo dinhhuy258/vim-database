@@ -7,7 +7,7 @@ from .nvim import init_nvim, get_global_var
 from .settings import load_settings
 from .logging import log, init_log
 from .executor_service import ExecutorService
-from .utils import create_folder_if_not_present
+from .utils.files import create_folder_if_not_present
 from .database import (
     show_connections,
     show_databases,

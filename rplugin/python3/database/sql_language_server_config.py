@@ -3,7 +3,7 @@ import os
 from os import path
 from hashlib import md5
 from typing import Any, Dict
-from .utils import create_folder_if_not_present, is_file_exists
+from .utils.files import is_file_exists, create_folder_if_not_present
 from .connection import Connection, ConnectionType
 from .logging import log
 

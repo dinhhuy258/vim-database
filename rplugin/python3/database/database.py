@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from enum import Enum
 from .settings import Settings
 from .logging import log
-from .utils import is_file_exists, run_in_executor
-from .ascii_table import ascii_table
-from .sql_client import SqlClient
-from .sql_client_factory import SqlClientFactory
+from .utils.executors import run_in_executor
+from .utils.files import is_file_exists
+from .utils.ascii_table import ascii_table
 from .sql_language_server_config import switch_database_connection as lsp_switch_database_connection
+from .sql_clients.sql_client_factory import SqlClientFactory
 from .connection import (
     Connection,
     ConnectionType,

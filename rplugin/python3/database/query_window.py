@@ -1,7 +1,7 @@
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
 from typing import Tuple, Iterator, Sequence, Any, Optional
-from .utils import string_compose
+from .utils.strings import string_compose
 from .logging import log
 from .nvim import (
     call_atomic,

@@ -1,6 +1,6 @@
 import abc
 from typing import Optional, Tuple
-from .connection import Connection
+from ..connection import Connection
 
 
 class SqlClient(metaclass=abc.ABCMeta):
