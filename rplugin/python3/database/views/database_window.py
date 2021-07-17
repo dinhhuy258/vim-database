@@ -1,8 +1,8 @@
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
 from typing import Optional, Tuple, Iterator, Sequence, Any
-from .settings import Settings
-from .nvim import (
+from ..settings import Settings
+from ..utils.nvim import (
     call_atomic,
     async_call,
     find_windows_in_tab,

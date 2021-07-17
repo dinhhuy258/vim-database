@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from .settings import Settings
 from .logging import log
-from .utils.executors import run_in_executor
+from .concurrents.executors import run_in_executor
 from .utils.files import is_file_exists
 from .utils.ascii_table import ascii_table
 from .sql_language_server_config import switch_database_connection as lsp_switch_database_connection
@@ -18,7 +18,7 @@ from .connection import (
     get_connections,
     get_default_connection,
 )
-from .database_window import (
+from .views.database_window import (
     open_database_window,
     close_database_window,
     is_database_window_open,
@@ -27,13 +27,13 @@ from .database_window import (
     get_current_database_window_cursor,
     resize,
 )
-from .query_window import (
+from .views.query_window import (
     open_query_window,
     close_query_window,
     get_query,
     is_query_window_opened,
 )
-from .nvim import (
+from .utils.nvim import (
     call_function,
     async_call,
     confirm,
