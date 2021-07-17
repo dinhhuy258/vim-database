@@ -2,7 +2,6 @@ from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
 from typing import Tuple, Iterator, Sequence, Any, Optional
 from ..utils.strings import string_compose
-from ..logging import log
 from ..utils.nvim import (
     call_atomic,
     execute,
@@ -15,11 +14,10 @@ from ..utils.nvim import (
     set_window_option,
     find_windows_in_tab,
     get_buffer_in_window,
-    get_buffer_option,
     close_window,
     get_buffer_content,
 )
-from ..settings import Settings
+from ..settings.config import UserConfig
 
 _VIM_DATABASE_QUERY_TITLE = "[vim-database] Query"
 _VIM_DATABASE_QUERY_BORDER_CHARS = ['─', '│', '─', '│', '┌', '┐', '┘', '└']
@@ -69,7 +67,7 @@ def close_query_window() -> None:
         close_window(query_window, True)
 
 
-def open_query_window(settings: Settings) -> Optional[Window]:
+def open_query_window(settings: UserConfig) -> Optional[Window]:
     query_window = _find_query_window()
     if query_window is not None:
         return query_window

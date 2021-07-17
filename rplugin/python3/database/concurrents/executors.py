@@ -1,5 +1,3 @@
-import os
-from os import path
 from asyncio import get_running_loop
 from functools import partial
 from typing import Any, Callable, TypeVar

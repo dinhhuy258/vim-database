@@ -1,10 +1,8 @@
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
-from typing import Optional, Tuple, Iterator, Sequence, Any
-from ..settings import Settings
+from typing import Optional, Tuple
+from ..settings.config import UserConfig
 from ..utils.nvim import (
-    call_atomic,
-    async_call,
     find_windows_in_tab,
     get_buffer_option,
     create_buffer,
@@ -45,7 +43,7 @@ def _get_window_layout(window_layout: str) -> WindowLayout:
     return WindowLayout.LEFT
 
 
-def _open_database_window(settings: Settings) -> Window:
+def _open_database_window(settings: UserConfig) -> Window:
     buffer = create_buffer(
         settings.mappings, {
             'buftype': 'nofile',
@@ -65,7 +63,7 @@ def _open_database_window(settings: Settings) -> Window:
     return window
 
 
-def open_database_window(settings: Settings) -> Window:
+def open_database_window(settings: UserConfig) -> Window:
     window = _find_database_window_in_tab()
     if window is None:
         window = _open_database_window(settings)

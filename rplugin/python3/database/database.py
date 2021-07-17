@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 from functools import partial
 from dataclasses import dataclass
 from enum import Enum
-from .settings import Settings
+from .settings.config import UserConfig
 from .logging import log
 from .concurrents.executors import run_in_executor
 from .utils.files import is_file_exists
@@ -82,7 +82,7 @@ state: State = State(mode=Mode.CONNECTION,
                      order=None)
 
 
-async def _show_result(settings: Settings, headers: list, rows: list) -> None:
+async def _show_result(settings: UserConfig, headers: list, rows: list) -> None:
     window = await async_call(partial(open_database_window, settings))
 
     await async_call(partial(render, window, ascii_table(headers, rows)))
@@ -195,7 +195,7 @@ def _new_connection() -> Optional[Connection]:
     return None
 
 
-async def _delete_connection(settings: Settings) -> None:
+async def _delete_connection(settings: UserConfig) -> None:
     connection_index = await async_call(_get_connection_index)
     if connection_index is None:
         return
@@ -213,7 +213,7 @@ async def _delete_connection(settings: Settings) -> None:
     await show_connections(settings)
 
 
-async def _delete_result(settings: Settings) -> None:
+async def _delete_result(settings: UserConfig) -> None:
     result_index = await async_call(_get_result_index)
     if result_index is None:
         return
@@ -259,7 +259,7 @@ async def _delete_result(settings: Settings) -> None:
         await _show_result(settings, result_headers, result_rows)
 
 
-async def _delete_table(settings: Settings) -> None:
+async def _delete_table(settings: UserConfig) -> None:
     table_index = await async_call(_get_table_index)
     if table_index is None:
         return
@@ -279,7 +279,7 @@ async def _delete_table(settings: Settings) -> None:
     await show_tables(settings)
 
 
-async def _show_table_info(settings: Settings, table: str) -> None:
+async def _show_table_info(settings: UserConfig, table: str) -> None:
 
     def get_table_info():
         sql_client = SqlClientFactory.create(state.selected_connection)
@@ -293,7 +293,7 @@ async def _show_table_info(settings: Settings, table: str) -> None:
     await _show_result(settings, table_info[0], table_info[1:])
 
 
-async def _describe_table(settings: Settings) -> None:
+async def _describe_table(settings: UserConfig) -> None:
     table_index = await async_call(_get_table_index)
     if table_index is None:
         return
@@ -303,7 +303,7 @@ async def _describe_table(settings: Settings) -> None:
     await _show_table_info(settings, table)
 
 
-async def show_table_content(settings: Settings, table: str) -> None:
+async def show_table_content(settings: UserConfig, table: str) -> None:
     if state.selected_connection is None:
         log.info("[vim-database] No connection found")
         return
@@ -315,7 +315,7 @@ async def show_table_content(settings: Settings, table: str) -> None:
     await _show_table_content(settings, table)
 
 
-async def _show_table_content(settings: Settings, table: str) -> None:
+async def _show_table_content(settings: UserConfig, table: str) -> None:
 
     def get_table_content():
         sql_client = SqlClientFactory.create(state.selected_connection)
@@ -346,7 +346,7 @@ async def _show_table_content(settings: Settings, table: str) -> None:
     await _show_result(settings, headers, rows)
 
 
-async def _select_connection(settings: Settings) -> None:
+async def _select_connection(settings: UserConfig) -> None:
     if state.mode != Mode.CONNECTION or len(state.connections) == 0:
         return
 
@@ -364,7 +364,7 @@ async def _select_connection(settings: Settings) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def _select_database(settings: Settings) -> None:
+async def _select_database(settings: UserConfig) -> None:
     if state.mode != Mode.DATABASE or len(state.databases) == 0:
         return
 
@@ -383,7 +383,7 @@ async def _select_database(settings: Settings) -> None:
     await show_databases(settings)
 
 
-async def _select_table(settings: Settings) -> None:
+async def _select_table(settings: UserConfig) -> None:
     state.filter_condition = None
     state.filter_column = None
     state.order = None
@@ -462,7 +462,7 @@ def _get_table_index() -> Optional[int]:
     return table_index
 
 
-async def _table_filter(settings: Settings) -> None:
+async def _table_filter(settings: UserConfig) -> None:
 
     def get_filter_pattern() -> Optional[str]:
         pattern = state.filter_pattern if state.filter_pattern is not None else ""
@@ -474,7 +474,7 @@ async def _table_filter(settings: Settings) -> None:
         await show_tables(settings)
 
 
-async def _result_filter(settings: Settings) -> None:
+async def _result_filter(settings: UserConfig) -> None:
 
     def get_filter_condition() -> Optional[str]:
         condition = state.filter_condition if state.filter_condition is not None else ""
@@ -487,7 +487,7 @@ async def _result_filter(settings: Settings) -> None:
         await _show_table_content(settings, state.selected_table)
 
 
-async def new_connection(settings: Settings) -> None:
+async def new_connection(settings: UserConfig) -> None:
     connection = await async_call(_new_connection)
     if connection is not None:
         await run_in_executor(partial(store_connection, connection))
@@ -499,7 +499,7 @@ async def new_connection(settings: Settings) -> None:
     return None
 
 
-async def toggle(settings: Settings) -> None:
+async def toggle(settings: UserConfig) -> None:
     is_window_open = await async_call(is_database_window_open)
     if is_window_open:
         await async_call(close_database_window)
@@ -518,7 +518,7 @@ async def toggle(settings: Settings) -> None:
         await show_connections(settings)
 
 
-async def show_connections(settings: Settings) -> None:
+async def show_connections(settings: UserConfig) -> None:
     window = await async_call(partial(open_database_window, settings))
 
     state.mode = Mode.CONNECTION
@@ -535,7 +535,7 @@ async def show_connections(settings: Settings) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def show_databases(settings: Settings) -> None:
+async def show_databases(settings: UserConfig) -> None:
     if state.selected_connection is None:
         state.selected_connection = await run_in_executor(get_default_connection)
 
@@ -560,7 +560,7 @@ async def show_databases(settings: Settings) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def list_tables_fzf(settings: Settings) -> None:
+async def list_tables_fzf(settings: UserConfig) -> None:
     if state.selected_connection is None:
         state.selected_connection = await run_in_executor(get_default_connection)
 
@@ -584,7 +584,7 @@ async def list_tables_fzf(settings: Settings) -> None:
     await async_call(partial(call_function, "VimDatabaseSelectTables", tables))
 
 
-async def show_tables(settings: Settings) -> None:
+async def show_tables(settings: UserConfig) -> None:
     if state.selected_connection is None:
         state.selected_connection = await run_in_executor(get_default_connection)
 
@@ -614,16 +614,16 @@ async def show_tables(settings: Settings) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def quit(settings: Settings) -> None:
+async def quit(settings: UserConfig) -> None:
     await async_call(close_database_window)
 
 
-async def new(settings: Settings) -> None:
+async def new(settings: UserConfig) -> None:
     if state.mode == Mode.CONNECTION:
         await new_connection(settings)
 
 
-async def show_insert_query(settings: Settings) -> None:
+async def show_insert_query(settings: UserConfig) -> None:
     if state.mode == Mode.TABLE_CONTENT_RESULT:
 
         def get_template_insert_query():
@@ -642,7 +642,7 @@ async def show_insert_query(settings: Settings) -> None:
         await async_call(partial(render, query_window, create_table_query))
 
 
-async def show_update_query(settings: Settings) -> None:
+async def show_update_query(settings: UserConfig) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
     if state.filter_column is not None:
@@ -686,7 +686,7 @@ async def show_update_query(settings: Settings) -> None:
     await async_call(partial(render, query_window, update_query))
 
 
-async def show_copy_query(settings: Settings) -> None:
+async def show_copy_query(settings: UserConfig) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
     if state.filter_column is not None:
@@ -722,7 +722,7 @@ async def show_copy_query(settings: Settings) -> None:
     await async_call(partial(render, query_window, insert_query))
 
 
-async def copy(settings: Settings) -> None:
+async def copy(settings: UserConfig) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
     if state.filter_column is not None:
@@ -774,7 +774,7 @@ async def copy(settings: Settings) -> None:
         await _show_result(settings, result_headers, result_rows)
 
 
-async def edit(settings: Settings) -> None:
+async def edit(settings: UserConfig) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
@@ -832,14 +832,14 @@ async def edit(settings: Settings) -> None:
             await _show_result(settings, result_headers, result_rows)
 
 
-async def info(settings: Settings) -> None:
+async def info(settings: UserConfig) -> None:
     if state.mode == Mode.TABLE and len(state.tables) != 0:
         await _describe_table(settings)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
         await _show_table_info(settings, state.selected_table)
 
 
-async def delete(settings: Settings) -> None:
+async def delete(settings: UserConfig) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
         await _delete_connection(settings)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
@@ -848,7 +848,7 @@ async def delete(settings: Settings) -> None:
         await _delete_result(settings)
 
 
-async def select(settings: Settings) -> None:
+async def select(settings: UserConfig) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
         await _select_connection(settings)
     elif state.mode == Mode.DATABASE and len(state.databases) != 0:
@@ -859,14 +859,14 @@ async def select(settings: Settings) -> None:
         await _show_table_content(settings, state.selected_table)
 
 
-async def new_filter(settings: Settings) -> None:
+async def new_filter(settings: UserConfig) -> None:
     if state.mode == Mode.TABLE:
         await _table_filter(settings)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
         await _result_filter(settings)
 
 
-async def filter_column(settings: Settings) -> None:
+async def filter_column(settings: UserConfig) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
@@ -881,7 +881,7 @@ async def filter_column(settings: Settings) -> None:
         await _show_table_content(settings, state.selected_table)
 
 
-async def sort(settings: Settings, orientation: str) -> None:
+async def sort(settings: UserConfig, orientation: str) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
     result_index = await async_call(_get_result_row_and_column)
@@ -896,7 +896,7 @@ async def sort(settings: Settings, orientation: str) -> None:
     await _show_table_content(settings, state.selected_table)
 
 
-async def clear_filter_column(settings: Settings) -> None:
+async def clear_filter_column(settings: UserConfig) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
@@ -905,7 +905,7 @@ async def clear_filter_column(settings: Settings) -> None:
         await _show_table_content(settings, state.selected_table)
 
 
-async def clear_filter(settings: Settings) -> None:
+async def clear_filter(settings: UserConfig) -> None:
     if state.mode == Mode.TABLE and state.filter_pattern is not None:
         state.filter_pattern = None
         await show_tables(settings)
@@ -914,7 +914,7 @@ async def clear_filter(settings: Settings) -> None:
         await _show_table_content(settings, state.selected_table)
 
 
-async def refresh(settings: Settings) -> None:
+async def refresh(settings: UserConfig) -> None:
     if state.mode == Mode.DATABASE and len(state.databases) != 0:
         await show_databases(settings)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
@@ -925,7 +925,7 @@ async def refresh(settings: Settings) -> None:
         await _show_table_info(settings, state.selected_table)
 
 
-async def toggle_query(settings: Settings) -> None:
+async def toggle_query(settings: UserConfig) -> None:
     is_opened = await async_call(is_query_window_opened)
     if is_opened:
         await quit_query(settings)
@@ -933,7 +933,7 @@ async def toggle_query(settings: Settings) -> None:
         await show_query(settings)
 
 
-async def lsp_config(settings: Settings) -> None:
+async def lsp_config(settings: UserConfig) -> None:
     if state.selected_connection is None:
         state.selected_connection = await run_in_executor(get_default_connection)
 
@@ -951,7 +951,7 @@ async def lsp_config(settings: Settings) -> None:
     await run_in_executor(partial(lsp_switch_database_connection, state.selected_connection, state.selected_database))
 
 
-async def show_query(settings: Settings) -> None:
+async def show_query(settings: UserConfig) -> None:
     if state.selected_connection is None:
         state.selected_connection = await run_in_executor(get_default_connection)
 
@@ -969,11 +969,11 @@ async def show_query(settings: Settings) -> None:
     await async_call(partial(open_query_window, settings))
 
 
-async def quit_query(settings: Settings) -> None:
+async def quit_query(settings: UserConfig) -> None:
     await async_call(close_query_window)
 
 
-async def run_query(settings: Settings) -> None:
+async def run_query(settings: UserConfig) -> None:
     if state.selected_connection is None:
         state.selected_connection = await run_in_executor(get_default_connection)
 
@@ -1018,5 +1018,5 @@ async def run_query(settings: Settings) -> None:
     await _show_result(settings, query_result[0], query_result[1:])
 
 
-async def resize_database_window(settings: Settings, direction: int) -> None:
+async def resize_database_window(settings: UserConfig, direction: int) -> None:
     await async_call(partial(resize, direction))

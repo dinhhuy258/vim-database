@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict
 from functools import partial
-from .utils.nvim import get_global_var, async_call
+from ..utils.nvim import get_global_var, async_call
 
 _DEFAULT_DATABASE_MAPPINGS = {
     "show_connections": ["<Leader>c"],
@@ -36,7 +36,7 @@ _DEFAULT_DATABASE_QUERY_MAPPINGS = {
 
 
 @dataclass(frozen=True)
-class Settings:
+class UserConfig:
     results_limit: int
     window_layout: str
     window_size: int
@@ -44,7 +44,7 @@ class Settings:
     query_mappings: Dict
 
 
-async def load_settings() -> Settings:
+async def load_config() -> UserConfig:
     mappings = await async_call(partial(get_global_var, "vim_database_mappings", _DEFAULT_DATABASE_MAPPINGS))
     mappings = {f"VimDatabase_{function}": mappings for function, mappings in mappings.items()}
 
@@ -58,8 +58,8 @@ async def load_settings() -> Settings:
     window_layout = await async_call(partial(get_global_var, "vim_database_window_layout", "left"))
     window_size = await async_call(partial(get_global_var, "vim_database_window_size", 100))
 
-    return Settings(results_limit=results_limit,
-                    window_layout=window_layout,
-                    window_size=window_size,
-                    mappings=mappings,
-                    query_mappings=query_mappings)
+    return UserConfig(results_limit=results_limit,
+                      window_layout=window_layout,
+                      window_size=window_size,
+                      mappings=mappings,
+                      query_mappings=query_mappings)

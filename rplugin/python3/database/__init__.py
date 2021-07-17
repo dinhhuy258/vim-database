@@ -4,7 +4,7 @@ from asyncio import AbstractEventLoop, Lock, run_coroutine_threadsafe
 from typing import Any, Awaitable, Callable, Sequence
 
 from .utils.nvim import init_nvim, get_global_var
-from .settings import load_settings
+from .settings.config import load_config
 from .logging import log, init_log
 from .concurrents.executor_service import ExecutorService
 from .utils.files import create_folder_if_not_present
@@ -73,7 +73,7 @@ class DatabasePlugin(object):
         async def run() -> None:
             async with self._lock:
                 if self._settings is None:
-                    self._settings = await load_settings()
+                    self._settings = await load_config()
                 await func(self._settings, *args)
 
         self._submit(run())

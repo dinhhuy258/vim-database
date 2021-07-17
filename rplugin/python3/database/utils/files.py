@@ -1,3 +1,7 @@
+import os
+from os import path
+
+
 def is_file_exists(file_path: str) -> bool:
     return path.exists(file_path) and path.isfile(file_path)
 
