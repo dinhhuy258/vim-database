@@ -1,7 +1,6 @@
 from typing import Optional, Tuple
 from .sql_client import SqlClient
 from ..connection import Connection
-from ..utils.commands import CommandResult, run_command
 from ..logging import log
 
 
@@ -11,43 +10,43 @@ class SqliteClient(SqlClient):
         SqlClient.__init__(self, connection)
 
     def get_databases(self) -> list:
-        result = run_command(["sqlite3", self.connection.database, ".database"])
+        result = self.run_command(["sqlite3", self.connection.database, ".database"])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return list()
         return list([result.data.split()[-1]])
 
     def get_tables(self, database: str) -> list:
-        result = run_command(["sqlite3", database, ".table"])
+        result = self.run_command(["sqlite3", database, ".table"])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return list()
         return result.data.split()
 
     def delete_table(self, database: str, table: str) -> None:
         delete_table_query = "DROP TABLE " + table
-        result = run_command(["sqlite3", database, delete_table_query])
+        result = self.run_command(["sqlite3", database, delete_table_query])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
 
     def describe_table(self, database: str, table: str) -> Optional[list]:
         describe_table_query = "PRAGMA table_info(" + table + ")"
-        result = run_command(["sqlite3", database, "--header", describe_table_query])
+        result = self.run_command(["sqlite3", database, "--header", describe_table_query])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         lines = result.data.splitlines()
         if len(lines) < 2:
-            log.info("[vim-databse] No table information found")
+            log.info("[vim-database] No table information found")
             return None
 
         return list(map(lambda data: data.split("|"), lines))
 
     def run_query(self, database: str, query: str) -> Optional[list]:
-        result = run_command(["sqlite3", database, "--header", query])
+        result = self.run_command(["sqlite3", database, "--header", query])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         lines = result.data.splitlines()
@@ -60,24 +59,24 @@ class SqliteClient(SqlClient):
         condition_column, condition_value = condition
         update_query = update_query + " WHERE " + condition_column + " = " + condition_value
 
-        result = run_command(["sqlite3", database, update_query])
+        result = self.run_command(["sqlite3", database, update_query])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return False
 
         return True
 
     def copy(self, database: str, table: str, unique_columns: list, new_unique_column_values: list) -> bool:
-        log.info("[vim-databse] Not supported for sqlite")
+        log.info("[vim-database] Not supported for sqlite")
         return False
 
     def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
         condition_column, condition_value = condition
         delete_query = "DELETE FROM " + table + " WHERE " + condition_column + " = " + condition_value
 
-        result = run_command(["sqlite3", database, delete_query])
+        result = self.run_command(["sqlite3", database, delete_query])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return False
 
         return True
@@ -128,11 +127,10 @@ class SqliteClient(SqlClient):
                 default_value_index = index
 
         if name_index == -1 or default_value_index == -1:
-            log.info("[vim-databse] Invalid column structure")
+            log.info("[vim-database] Invalid column structure")
             return None
 
-        insert_query = []
-        insert_query.append("INSERT INTO " + table + " (")
+        insert_query = ["INSERT INTO " + table + " ("]
         columns_len = len(columns)
         for index, column in enumerate(columns):
             insert_query.append("\t" + column[name_index])

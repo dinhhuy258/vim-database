@@ -1,8 +1,7 @@
 import os
 from typing import Optional, Tuple
-from .sql_client import SqlClient
+from .sql_client import SqlClient, CommandResult
 from ..connection import Connection
-from ..utils.commands import CommandResult, run_command
 from ..logging import log
 
 
@@ -12,7 +11,7 @@ class PostgreSqlClient(SqlClient):
         SqlClient.__init__(self, connection)
 
     def _run_query(self, query: str, options: list = list()) -> CommandResult:
-        return run_command([
+        return self.run_command([
             "psql",
             "--host=" + self.connection.host,
             "--port=" + self.connection.port,
@@ -56,7 +55,7 @@ class PostgreSqlClient(SqlClient):
 
         lines = result.data.splitlines()
         if len(lines) == 0:
-            log.info("[vim-databse] No table information found")
+            log.info("[vim-database] No table information found")
             return None
 
         data = list(map(lambda line: [column.strip() for column in line.split("|")], lines))
@@ -93,7 +92,7 @@ class PostgreSqlClient(SqlClient):
         return True
 
     def copy(self, database: str, table: str, unique_columns: list, new_unique_column_values: list) -> bool:
-        log.info("[vim-databse] Not supported for psql")
+        log.info("[vim-database] Not supported for psql")
         return False
 
     def delete(self, database: str, table: str, condition: Tuple[str, str]) -> bool:
@@ -136,7 +135,7 @@ class PostgreSqlClient(SqlClient):
 
         lines = result.data.splitlines()
         if len(lines) == 0:
-            log.info("[vim-databse] No table information found")
+            log.info("[vim-database] No table information found")
             return None
 
         columns = list(map(lambda line: [column.strip() for column in line.split("|")], lines))

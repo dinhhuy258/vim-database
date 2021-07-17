@@ -1,7 +1,6 @@
 from typing import Optional, Tuple
-from .sql_client import SqlClient
+from .sql_client import SqlClient, CommandResult
 from ..connection import Connection
-from ..utils.commands import CommandResult, run_command
 from ..logging import log
 
 
@@ -11,7 +10,7 @@ class MySqlClient(SqlClient):
         SqlClient.__init__(self, connection)
 
     def _run_query(self, query: str, options: list = list()) -> CommandResult:
-        return run_command([
+        return self.run_command([
             "mysql",
             "--unbuffered",
             "--batch",
@@ -27,7 +26,7 @@ class MySqlClient(SqlClient):
     def get_databases(self) -> list:
         result = self._run_query("SHOW DATABASES", ["--skip-column-names"])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return list()
         return result.data.splitlines()
 
@@ -35,24 +34,24 @@ class MySqlClient(SqlClient):
         result = self._run_query("SHOW TABLES FROM " + database, ["--skip-column-names"])
 
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return list()
         return result.data.splitlines()
 
     def delete_table(self, database: str, table: str) -> None:
         result = self._run_query("DROP TABLE " + database + "." + table)
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
 
     def describe_table(self, database: str, table: str) -> Optional[list]:
         result = self._run_query("DESCRIBE " + database + "." + table)
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         lines = result.data.splitlines()
         if len(lines) < 2:
-            log.info("[vim-databse] No table information found")
+            log.info("[vim-database] No table information found")
             return None
 
         return list(map(lambda line: line.split("\t"), lines))
@@ -60,7 +59,7 @@ class MySqlClient(SqlClient):
     def run_query(self, database: str, query: str) -> Optional[list]:
         result = self._run_query(query, ["--database=" + database])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         lines = result.data.splitlines()
@@ -75,7 +74,7 @@ class MySqlClient(SqlClient):
 
         result = self._run_query(update_query, ["--database=" + database])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return False
 
         return True
@@ -83,7 +82,7 @@ class MySqlClient(SqlClient):
     def copy(self, database: str, table: str, unique_columns: list, new_unique_column_values: list) -> bool:
         num_unique_columns = len(unique_columns)
         if num_unique_columns != len(new_unique_column_values):
-            log.info("[vim-databse] The lenght of unique columns must be equal to new unique column values")
+            log.info("[vim-database] The lenght of unique columns must be equal to new unique column values")
             return False
 
         assign_query = ""
@@ -109,7 +108,7 @@ class MySqlClient(SqlClient):
 
         result = self._run_query(copy_query, ["--database=" + database])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return False
 
         return True
@@ -120,7 +119,7 @@ class MySqlClient(SqlClient):
 
         result = self._run_query(delete_query, ["--database=" + database])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return False
 
         return True
@@ -129,7 +128,7 @@ class MySqlClient(SqlClient):
         get_primary_key_query = "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = \'" + table + "\'  AND CONSTRAINT_NAME = 'PRIMARY' AND CONSTRAINT_SCHEMA=\'" + database + "\'"
         result = self._run_query(get_primary_key_query, ["--skip-column-names"])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         return result.data
@@ -138,7 +137,7 @@ class MySqlClient(SqlClient):
         get_unique_keys_query = "SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = \'" + database + "\' AND TABLE_NAME = \'" + table + "\' AND NON_UNIQUE = 0"
         result = self._run_query(get_unique_keys_query, ["--skip-column-names"])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         return result.data.splitlines()
@@ -147,7 +146,7 @@ class MySqlClient(SqlClient):
         get_columns_query = "SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_NAME = \'" + table + "\' AND TABLE_SCHEMA=\'" + database + "\'"
         result = self._run_query(get_columns_query, ["--skip-column-names"])
         if result.error:
-            log.info("[vim-databse] " + result.data)
+            log.info("[vim-database] " + result.data)
             return None
 
         lines = result.data.splitlines()

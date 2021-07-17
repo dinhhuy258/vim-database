@@ -1,12 +1,30 @@
 import abc
+import subprocess
+from dataclasses import dataclass
 from typing import Optional, Tuple
 from ..connection import Connection
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    error: bool
+    data: str
 
 
 class SqlClient(metaclass=abc.ABCMeta):
 
     def __init__(self, connection: Connection):
         self.connection = connection
+
+    def run_command(self, command: list, environment: dict = None) -> CommandResult:
+        if environment is None:
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        else:
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=environment)
+        if result.returncode == 0:
+            return CommandResult(error=False, data=result.stdout.rstrip())
+
+        return CommandResult(error=True, data=result.stderr.rstrip())
 
     @abc.abstractmethod
     def get_databases(self) -> list:
