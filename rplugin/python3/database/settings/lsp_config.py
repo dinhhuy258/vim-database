@@ -3,14 +3,15 @@ import os
 from os import path
 from hashlib import md5
 from typing import Any, Dict
-from .utils.files import is_file_exists, create_folder_if_not_present
-from .connection import Connection, ConnectionType
-from .logging import log
+from ..utils.files import is_file_exists, create_folder_if_not_present
+from ..connection import Connection, ConnectionType
+from ..logging import log
 
 _LS_CONFIG_FILE_NAME = ".sqllsrc.json"
 
 
-def _is_connection_configged(connection: Connection, selected_database: str, config_connection: Dict[str, Any]) -> bool:
+def _is_connection_configured(connection: Connection, selected_database: str, config_connection: Dict[str,
+                                                                                                      Any]) -> bool:
     if not config_connection["adapter"].lower().startswith(connection.connection_type.to_string().lower()):
         return False
 
@@ -33,13 +34,12 @@ def switch_database_connection(connection: Connection, database: str) -> None:
     config_folder = path.join(path.expanduser("~"), ".config/sql-language-server")
     config_path = path.join(config_folder, _LS_CONFIG_FILE_NAME)
 
-    if is_file_exists(config_path) == False:
+    if not is_file_exists(config_path):
         create_folder_if_not_present(config_folder)
         config_file = open(config_path, "w")
         config_file.write(json.dumps({"connections": []}, indent=2))
         config_file.close()
 
-    config_connections = []
     with open(config_path) as config_file:
         json_data = json.load(config_file)
         config_connections = json_data["connections"]
@@ -47,8 +47,8 @@ def switch_database_connection(connection: Connection, database: str) -> None:
     current_config_connection = next((config_connection for config_connection in config_connections
                                       if config_connection["name"] == config_connection_name), None)
 
-    if current_config_connection is not None and _is_connection_configged(connection, database,
-                                                                          current_config_connection):
+    if current_config_connection is not None and _is_connection_configured(connection, database,
+                                                                           current_config_connection):
         log.info("[vim-database] Switch database connection successfully")
         return
 
