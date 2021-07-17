@@ -6,6 +6,7 @@ from ..connection import Connection, ConnectionType
 
 
 class SqlClientFactory(object):
+
     @staticmethod
     def create(connection: Connection) -> SqlClient:
         if connection.connection_type == ConnectionType.SQLITE:

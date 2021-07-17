@@ -3,6 +3,7 @@ from pynvim import Nvim, plugin, command, function
 from asyncio import AbstractEventLoop, Lock, run_coroutine_threadsafe
 from typing import Any, Awaitable, Callable, Sequence
 
+from .states.state import init_state
 from .utils.nvim import init_nvim, get_global_var
 from .settings.config import load_config
 from .logging import log, init_log
@@ -50,6 +51,7 @@ class DatabasePlugin(object):
         init_nvim(self._nvim)
         init_log(self._nvim)
         self._settings = None
+        self._state = init_state()
         database_workspace = get_global_var("database_workspace", os.getcwd())
         os.chdir(database_workspace)
 
@@ -74,7 +76,7 @@ class DatabasePlugin(object):
             async with self._lock:
                 if self._settings is None:
                     self._settings = await load_config()
-                await func(self._settings, *args)
+                await func(self._settings, self._state, *args)
 
         self._submit(run())
 
