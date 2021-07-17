@@ -1,8 +1,7 @@
 import re
 from typing import Optional, Tuple
 from functools import partial
-from dataclasses import dataclass
-from enum import Enum
+from .states.state import init_state, Mode
 from .settings.config import UserConfig
 from .logging import log
 from .concurrents.executors import run_in_executor
@@ -42,44 +41,7 @@ from .utils.nvim import (
     render,
 )
 
-
-class Mode(Enum):
-    CONNECTION = 1
-    DATABASE = 2
-    TABLE = 3
-    INFO_RESULT = 4
-    TABLE_CONTENT_RESULT = 5
-    QUERY_RESULT = 6
-
-
-@dataclass(frozen=False)
-class State:
-    mode: Mode
-    connections: list
-    selected_connection: Optional[Connection]
-    databases: list
-    selected_database: Optional[str]
-    tables: list
-    selected_table: Optional[str]
-    result: Optional[Tuple[list, list]]
-    filter_pattern: Optional[str]
-    filter_column: Optional[str]
-    filter_condition: Optional[str]
-    order: Optional[Tuple[str, str]]
-
-
-state: State = State(mode=Mode.CONNECTION,
-                     connections=list(),
-                     selected_connection=None,
-                     databases=list(),
-                     selected_database=None,
-                     tables=list(),
-                     selected_table=None,
-                     result=None,
-                     filter_pattern=None,
-                     filter_column=None,
-                     filter_condition=None,
-                     order=None)
+state = init_state()
 
 
 async def _show_result(settings: UserConfig, headers: list, rows: list) -> None:
@@ -97,7 +59,7 @@ def _get_table_datas_from_state() -> Tuple[list, list, int]:
         if table == state.selected_table:
             selected_index = index
 
-    return (["Table"], table_datas, selected_index)
+    return ["Table"], table_datas, selected_index
 
 
 def _get_database_datas_from_state() -> Tuple[list, list, int]:
@@ -110,7 +72,7 @@ def _get_database_datas_from_state() -> Tuple[list, list, int]:
         else:
             database_datas.append([database])
 
-    return (["Database"], database_datas, selected_index)
+    return ["Database"], database_datas, selected_index
 
 
 def _get_connection_datas_from_state() -> Tuple[list, list, int]:
@@ -127,7 +89,7 @@ def _get_connection_datas_from_state() -> Tuple[list, list, int]:
             "" if connection.password is None else connection.password, connection.database
         ])
 
-    return (["Name", "Type", "Host", "Port", "Username", "Password", "Database"], connection_datas, selected_index)
+    return ["Name", "Type", "Host", "Port", "Username", "Password", "Database"], connection_datas, selected_index
 
 
 def _new_sqlite_connection() -> Optional[Connection]:
@@ -202,7 +164,7 @@ async def _delete_connection(settings: UserConfig) -> None:
 
     connection = state.connections[connection_index]
     ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
-    if ans == False:
+    if not ans:
         return
 
     await run_in_executor(partial(delete_connection, connection))
@@ -244,7 +206,7 @@ async def _delete_result(settings: UserConfig) -> None:
 
     ans = await async_call(
         partial(confirm, "DELETE FROM " + state.selected_table + " WHERE " + primary_key + " = " + primary_key_value))
-    if ans == False:
+    if not ans:
         return
 
     def delete() -> bool:
@@ -253,7 +215,7 @@ async def _delete_result(settings: UserConfig) -> None:
                                  (primary_key, "\'" + primary_key_value + "\'"))
 
     delete_result = await run_in_executor(delete)
-    if delete_result == True:
+    if delete_result:
         del result_rows[result_index]
         state.result = (result_headers, result_rows)
         await _show_result(settings, result_headers, result_rows)
@@ -266,7 +228,7 @@ async def _delete_table(settings: UserConfig) -> None:
 
     table = state.tables[table_index]
     ans = await async_call(partial(confirm, "Do you want to delete table " + table + "?"))
-    if ans == False:
+    if not ans:
         return
 
     def delete_table():
@@ -448,7 +410,7 @@ def _get_result_row_and_column() -> Optional[Tuple[int, int]]:
         if line[i] == '|':
             result_column += 1
 
-    return (result_row, result_column - 1)
+    return result_row, result_column - 1
 
 
 def _get_table_index() -> Optional[int]:
@@ -560,19 +522,8 @@ async def show_databases(settings: UserConfig) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def list_tables_fzf(settings: UserConfig) -> None:
-    if state.selected_connection is None:
-        state.selected_connection = await run_in_executor(get_default_connection)
-
-    if state.selected_connection is None:
-        log.info("[vim-database] No connection found")
-        return
-
-    if state.selected_database is None:
-        state.selected_database = state.selected_connection.database
-
-    if state.selected_database is None:
-        log.info("[vim-database] No database found")
+async def list_tables_fzf(_: UserConfig) -> None:
+    if not await state.load_connection() or not await state.load_database():
         return
 
     def _get_tables():
@@ -585,18 +536,7 @@ async def list_tables_fzf(settings: UserConfig) -> None:
 
 
 async def show_tables(settings: UserConfig) -> None:
-    if state.selected_connection is None:
-        state.selected_connection = await run_in_executor(get_default_connection)
-
-    if state.selected_connection is None:
-        log.info("[vim-database] No connection found")
-        return
-
-    if state.selected_database is None:
-        state.selected_database = state.selected_connection.database
-
-    if state.selected_database is None:
-        log.info("[vim-database] No database found")
+    if not await state.load_connection() or not await state.load_database():
         return
 
     state.mode = Mode.TABLE
@@ -614,7 +554,7 @@ async def show_tables(settings: UserConfig) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def quit(settings: UserConfig) -> None:
+async def quit(_: UserConfig) -> None:
     await async_call(close_database_window)
 
 
@@ -679,7 +619,6 @@ async def show_update_query(settings: UserConfig) -> None:
         column_value = result_row[i]
         if column != primary_key:
             update_query.append("\t" + column + " = \'" + column_value + "\',")
-            first_update_column = True
     update_query[-1] = update_query[-1][:-1]
     update_query.append("WHERE " + primary_key + " = \'" + result_row[primary_key_index] + "\'")
     query_window = await async_call(partial(open_query_window, settings))
@@ -736,7 +675,7 @@ async def copy(settings: UserConfig) -> None:
     copy_row = result_rows[result_index][:]
 
     ans = await async_call(partial(confirm, "Do you want to copy this row?"))
-    if ans == False:
+    if not ans:
         return
 
     header_map = dict()
@@ -768,7 +707,7 @@ async def copy(settings: UserConfig) -> None:
         return sql_client.copy(state.selected_database, state.selected_table, unique_columns, new_unique_column_values)
 
     copy_result = await run_in_executor(_copy_row)
-    if copy_result == True:
+    if copy_result:
         result_rows.append(copy_row)
         state.result = (result_headers, result_rows)
         await _show_result(settings, result_headers, result_rows)
@@ -816,7 +755,7 @@ async def edit(settings: UserConfig) -> None:
             partial(
                 confirm, "UPDATE " + state.selected_table + " SET " + edit_column + " = " + new_value + " WHERE " +
                 primary_key + " = " + primary_key_value))
-        if ans == False:
+        if not ans:
             return
 
         def update() -> bool:
@@ -826,7 +765,7 @@ async def edit(settings: UserConfig) -> None:
                                      (primary_key, "\'" + primary_key_value + "\'"))
 
         update_result = await run_in_executor(update)
-        if update_result == True:
+        if update_result:
             result_rows[row][column] = new_value
             state.result = (result_headers, result_rows)
             await _show_result(settings, result_headers, result_rows)
@@ -933,59 +872,26 @@ async def toggle_query(settings: UserConfig) -> None:
         await show_query(settings)
 
 
-async def lsp_config(settings: UserConfig) -> None:
-    if state.selected_connection is None:
-        state.selected_connection = await run_in_executor(get_default_connection)
-
-    if state.selected_connection is None:
-        log.info("[vim-database] No connection found")
-        return
-
-    if state.selected_database is None:
-        state.selected_database = state.selected_connection.database
-
-    if state.selected_database is None:
-        log.info("[vim-database] No database found")
+async def lsp_config(_: UserConfig) -> None:
+    if not await state.load_connection() or not await state.load_database():
         return
 
     await run_in_executor(partial(lsp_switch_database_connection, state.selected_connection, state.selected_database))
 
 
 async def show_query(settings: UserConfig) -> None:
-    if state.selected_connection is None:
-        state.selected_connection = await run_in_executor(get_default_connection)
-
-    if state.selected_connection is None:
-        log.info("[vim-database] No connection found")
-        return
-
-    if state.selected_database is None:
-        state.selected_database = state.selected_connection.database
-
-    if state.selected_database is None:
-        log.info("[vim-database] No database found")
+    if not await state.load_connection() or not await state.load_database():
         return
 
     await async_call(partial(open_query_window, settings))
 
 
-async def quit_query(settings: UserConfig) -> None:
+async def quit_query(_: UserConfig) -> None:
     await async_call(close_query_window)
 
 
 async def run_query(settings: UserConfig) -> None:
-    if state.selected_connection is None:
-        state.selected_connection = await run_in_executor(get_default_connection)
-
-    if state.selected_connection is None:
-        log.info("[vim-database] No connection found")
-        return
-
-    if state.selected_database is None:
-        state.selected_database = state.selected_connection.database
-
-    if state.selected_database is None:
-        log.info("[vim-database] No database found")
+    if not await state.load_connection() or not await state.load_database():
         return
 
     query = await async_call(get_query)
@@ -1002,7 +908,6 @@ async def run_query(settings: UserConfig) -> None:
 
     if len(query_result) < 2:
         await async_call(close_query_window)
-        headers = []
         if query.lower().startswith("select "):
             headers = ["Empty"]
         else:
@@ -1018,5 +923,5 @@ async def run_query(settings: UserConfig) -> None:
     await _show_result(settings, query_result[0], query_result[1:])
 
 
-async def resize_database_window(settings: UserConfig, direction: int) -> None:
+async def resize_database_window(_: UserConfig, direction: int) -> None:
     await async_call(partial(resize, direction))
