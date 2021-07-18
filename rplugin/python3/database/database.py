@@ -2,22 +2,15 @@ import re
 from functools import partial
 from typing import Optional, Tuple
 
+from .connection_manager import show_connections, new_connection, delete_connection_from_list, select_connection
 from .concurrents.executors import run_in_executor
-from .connection import (
-    Connection,
-    ConnectionType,
-    store_connection,
-    delete_connection,
-    get_connections,
-    get_default_connection,
-)
+from .connection import (get_default_connection)
 from .logging import log
 from .settings.config import UserConfig
 from .settings.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
 from .utils.ascii_table import ascii_table
-from .utils.files import is_file_exists
 from .utils.nvim import (
     call_function,
     async_call,
@@ -72,106 +65,6 @@ def _get_database_datas_from_state(state: State) -> Tuple[list, list, int]:
             database_datas.append([database])
 
     return ["Database"], database_datas, selected_index
-
-
-def _get_connection_datas_from_state(state: State) -> Tuple[list, list, int]:
-    connection_datas = []
-    selected_index = 0
-    for index, connection in enumerate(state.connections):
-        if state.selected_connection.name == connection.name:
-            selected_index = index
-        connection_datas.append([
-            connection.name + " (*)" if state.selected_connection.name == connection.name else connection.name,
-            connection.connection_type.to_string(), "" if connection.host is None else connection.host,
-            "" if connection.port is None else connection.port,
-            "" if connection.username is None else connection.username,
-            "" if connection.password is None else connection.password, connection.database
-        ])
-
-    return ["Name", "Type", "Host", "Port", "Username", "Password", "Database"], connection_datas, selected_index
-
-
-def _new_sqlite_connection() -> Optional[Connection]:
-    name = get_input("Name: ")
-    if not name:
-        return None
-    file = get_input("File: ")
-    if not file:
-        return None
-    if not is_file_exists(file):
-        log.info('[vim-database] File not found: ' + file)
-        return None
-
-    return Connection(name=name,
-                      connection_type=ConnectionType.SQLITE,
-                      host=None,
-                      port=None,
-                      username=None,
-                      password=None,
-                      database=file)
-
-
-def _new_mysql_or_postgresql_connection(connection_type: ConnectionType) -> Optional[Connection]:
-    name = get_input("Name: ")
-    if not name:
-        return None
-    host = get_input("Host: ")
-    if not host:
-        return None
-    port = get_input("Port: ")
-    if not port:
-        return None
-    username = get_input("Username: ")
-    if not username:
-        return None
-    password = get_input("Password: ")
-    if not password:
-        return None
-    database = get_input("Database: ")
-    if not database:
-        return None
-
-    return Connection(name=name,
-                      connection_type=connection_type,
-                      host=host,
-                      port=port,
-                      username=username,
-                      password=password,
-                      database=database)
-
-
-def _new_connection() -> Optional[Connection]:
-    try:
-        connection_type_value = get_input("Connection type (1: SQLite, 2: MySQL, 3: PostgreSQL): ")
-        if connection_type_value:
-            connection_type = ConnectionType(int(connection_type_value))
-            if connection_type is ConnectionType.SQLITE:
-                return _new_sqlite_connection()
-            elif connection_type is ConnectionType.MYSQL:
-                return _new_mysql_or_postgresql_connection(ConnectionType.MYSQL)
-            elif connection_type is ConnectionType.POSTGRESQL:
-                return _new_mysql_or_postgresql_connection(ConnectionType.POSTGRESQL)
-    except:
-        log.info('[vim-database] Invalid connection type')
-    return None
-
-
-async def _delete_connection(settings: UserConfig, state: State) -> None:
-    connection_index = await async_call(partial(_get_connection_index, state))
-    if connection_index is None:
-        return
-
-    connection = state.connections[connection_index]
-    ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
-    if not ans:
-        return
-
-    await run_in_executor(partial(delete_connection, connection))
-    if connection.name == state.selected_connection.name:
-        state.selected_connection = None
-
-    # Update connections table
-    await show_connections(settings, state)
 
 
 async def _delete_result(settings: UserConfig, state: State) -> None:
@@ -307,24 +200,6 @@ async def _show_table_content(settings: UserConfig, state: State, table: str) ->
     await _show_result(settings, headers, rows)
 
 
-async def _select_connection(settings: UserConfig, state: State) -> None:
-    if state.mode != Mode.CONNECTION or len(state.connections) == 0:
-        return
-
-    connection_index = await async_call(partial(_get_connection_index, state))
-    if connection_index is None:
-        return
-
-    state.selected_connection = state.connections[connection_index]
-    state.selected_database = state.selected_connection.database
-
-    # Update connections table
-    window = await async_call(partial(open_database_window, settings))
-    connection_headers, connection_rows, selected_index = _get_connection_datas_from_state(state)
-    await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
-
-
 async def _select_database(settings: UserConfig, state: State) -> None:
     if state.mode != Mode.DATABASE or len(state.databases) == 0:
         return
@@ -365,17 +240,6 @@ def _get_database_index(state: State) -> Optional[int]:
         return None
 
     return database_index
-
-
-def _get_connection_index(state: State) -> Optional[int]:
-    row = get_current_database_window_row()
-    connections_size = len(state.connections)
-    # Minus 4 for header of the table
-    connection_index = row - 4
-    if connection_index < 0 or connection_index >= connections_size:
-        return None
-
-    return connection_index
 
 
 def _get_result_index(state: State) -> Optional[int]:
@@ -448,18 +312,6 @@ async def _result_filter(settings: UserConfig, state: State) -> None:
         await _show_table_content(settings, state, state.selected_table)
 
 
-async def new_connection(settings: UserConfig, state: State) -> None:
-    connection = await async_call(_new_connection)
-    if connection is not None:
-        await run_in_executor(partial(store_connection, connection))
-        # Update connections table
-        is_window_open = await async_call(is_database_window_open)
-        if is_window_open and state.mode == Mode.CONNECTION:
-            await show_connections(settings, state)
-        log.info('[vim-database] Connection created')
-    return None
-
-
 async def toggle(settings: UserConfig, state: State) -> None:
     is_window_open = await async_call(is_database_window_open)
     if is_window_open:
@@ -477,23 +329,6 @@ async def toggle(settings: UserConfig, state: State) -> None:
     else:
         # Fallback
         await show_connections(settings, state)
-
-
-async def show_connections(settings: UserConfig, state: State) -> None:
-    window = await async_call(partial(open_database_window, settings))
-
-    state.mode = Mode.CONNECTION
-
-    def _get_connections() -> list:
-        return list(get_connections())
-
-    state.connections = await run_in_executor(_get_connections)
-    if state.selected_connection is None:
-        state.selected_connection = get_default_connection()
-
-    connection_headers, connection_rows, selected_index = _get_connection_datas_from_state(state)
-    await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def show_databases(settings: UserConfig, state: State) -> None:
@@ -779,7 +614,7 @@ async def info(settings: UserConfig, state: State) -> None:
 
 async def delete(settings: UserConfig, state: State) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
-        await _delete_connection(settings, state)
+        await delete_connection_from_list(settings, state)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await _delete_table(settings, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
@@ -788,7 +623,7 @@ async def delete(settings: UserConfig, state: State) -> None:
 
 async def select(settings: UserConfig, state: State) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
-        await _select_connection(settings, state)
+        await select_connection(settings, state)
     elif state.mode == Mode.DATABASE and len(state.databases) != 0:
         await _select_database(settings, state)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
