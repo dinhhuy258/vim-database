@@ -2,7 +2,7 @@ import re
 from functools import partial
 from typing import Optional, Tuple
 
-from .connection_manager import show_connections, new_connection, delete_connection, select_connection
+from .transitions.connection_ops import show_connections, new_connection, delete_connection, select_connection
 from .concurrents.executors import run_in_executor
 from .utils.log import log
 from .configs.config import UserConfig

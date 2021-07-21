@@ -1,21 +1,21 @@
 from functools import partial
 from typing import Optional, Tuple
 
-from .concurrents.executors import run_in_executor
-from .connection import (Connection, ConnectionType, store_connection, remove_connection)
-from .utils.log import log
-from .configs.config import UserConfig
-from .states.state import Mode, State
-from .utils.ascii_table import ascii_table
-from .utils.files import is_file_exists
-from .utils.nvim import (
+from ..concurrents.executors import run_in_executor
+from ..connection import (Connection, ConnectionType, store_connection, remove_connection)
+from ..utils.log import log
+from ..configs.config import UserConfig
+from ..states.state import Mode, State
+from ..utils.ascii_table import ascii_table
+from ..utils.files import is_file_exists
+from ..utils.nvim import (
     async_call,
     confirm,
     get_input,
     set_cursor,
     render,
 )
-from .views.database_window import (open_database_window, get_current_database_window_row, is_database_window_open)
+from ..views.database_window import (open_database_window, get_current_database_window_row, is_database_window_open)
 
 
 async def new_connection(settings: UserConfig, state: State) -> None:
