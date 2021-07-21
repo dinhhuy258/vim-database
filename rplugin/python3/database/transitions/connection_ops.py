@@ -27,6 +27,7 @@ async def new_connection(settings: UserConfig, state: State) -> None:
         state.connections.append(connection)
         if state.selected_connection is None:
             state.selected_connection = connection
+            state.selected_database = connection.database
 
         # Update connections table
         is_window_open = await async_call(is_database_window_open)
