@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
-from logging import log
 from ..concurrents.executors import run_in_executor
 from ..connection import (
     Connection,

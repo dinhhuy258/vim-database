@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 from .connection_manager import show_connections, new_connection, delete_connection_from_list, select_connection
 from .concurrents.executors import run_in_executor
-from .logging import log
+from .log import log
 from .configs.config import UserConfig
 from .configs.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .sql_clients.sql_client_factory import SqlClientFactory

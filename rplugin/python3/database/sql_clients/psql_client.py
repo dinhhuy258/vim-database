@@ -2,7 +2,7 @@ import os
 from typing import Optional, Tuple
 from .sql_client import SqlClient, CommandResult
 from ..connection import Connection
-from ..logging import log
+from ..log import log
 
 
 class PostgreSqlClient(SqlClient):

@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 from .concurrents.executors import run_in_executor
 from .connection import (Connection, ConnectionType, store_connection, delete_connection)
-from .logging import log
+from .log import log
 from .configs.config import UserConfig
 from .states.state import Mode, State
 from .utils.ascii_table import ascii_table
