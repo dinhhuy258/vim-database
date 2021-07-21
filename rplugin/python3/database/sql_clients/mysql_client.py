@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 from .sql_client import SqlClient, CommandResult
 from ..connection import Connection
-from ..log import log
+from ..utils.log import log
 
 
 class MySqlClient(SqlClient):

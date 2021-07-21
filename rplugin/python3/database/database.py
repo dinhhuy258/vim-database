@@ -2,9 +2,9 @@ import re
 from functools import partial
 from typing import Optional, Tuple
 
-from .connection_manager import show_connections, new_connection, delete_connection_from_list, select_connection
+from .connection_manager import show_connections, new_connection, delete_connection, select_connection
 from .concurrents.executors import run_in_executor
-from .log import log
+from .utils.log import log
 from .configs.config import UserConfig
 from .configs.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .sql_clients.sql_client_factory import SqlClientFactory
@@ -609,7 +609,7 @@ async def info(configs: UserConfig, state: State) -> None:
 
 async def delete(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
-        await delete_connection_from_list(configs, state)
+        await delete_connection(configs, state)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await _delete_table(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:

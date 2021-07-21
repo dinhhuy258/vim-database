@@ -39,7 +39,7 @@ def store_connection(connection: Connection) -> None:
         connection_store[connection.name] = connection
 
 
-def delete_connection(connection: Connection) -> None:
+def remove_connection(connection: Connection) -> None:
     with shelve.open(_get_connection_store_file_path()) as connection_store:
         del connection_store[connection.name]
 

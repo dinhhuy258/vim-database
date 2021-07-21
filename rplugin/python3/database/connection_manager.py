@@ -2,8 +2,8 @@ from functools import partial
 from typing import Optional, Tuple
 
 from .concurrents.executors import run_in_executor
-from .connection import (Connection, ConnectionType, store_connection, delete_connection)
-from .log import log
+from .connection import (Connection, ConnectionType, store_connection, remove_connection)
+from .utils.log import log
 from .configs.config import UserConfig
 from .states.state import Mode, State
 from .utils.ascii_table import ascii_table
@@ -63,7 +63,7 @@ async def select_connection(settings: UserConfig, state: State) -> None:
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
-async def delete_connection_from_list(settings: UserConfig, state: State) -> None:
+async def delete_connection(settings: UserConfig, state: State) -> None:
     connection_index = await async_call(partial(_get_connection_index, state))
     if connection_index is None:
         return
@@ -74,7 +74,7 @@ async def delete_connection_from_list(settings: UserConfig, state: State) -> Non
     if not ans:
         return
 
-    await run_in_executor(partial(delete_connection, connection))
+    await run_in_executor(partial(remove_connection, connection))
 
     del state.connections[connection_index]
     if connection.name == state.selected_connection.name:

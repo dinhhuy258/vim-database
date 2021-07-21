@@ -4,10 +4,10 @@ from asyncio import AbstractEventLoop, Lock, run_coroutine_threadsafe
 from typing import Any, Awaitable, Callable, Sequence
 
 from .states.state import init_state
-from .utils.nvim import init_nvim, get_global_var
 from .configs.config import load_config
-from .log import log, init_log
 from .concurrents.executor_service import ExecutorService
+from .utils.nvim import init_nvim, get_global_var
+from .utils.log import log, init_log
 from .utils.files import create_folder_if_not_present
 from .database import (
     show_connections,
