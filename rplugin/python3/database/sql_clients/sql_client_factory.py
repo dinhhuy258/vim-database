@@ -2,7 +2,7 @@ from .sql_client import SqlClient
 from .sqlite_client import SqliteClient
 from .mysql_client import MySqlClient
 from .psql_client import PostgreSqlClient
-from ..connection import Connection, ConnectionType
+from ..storages.connection import Connection, ConnectionType
 
 
 class SqlClientFactory(object):

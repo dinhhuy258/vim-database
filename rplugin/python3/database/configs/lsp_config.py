@@ -4,7 +4,7 @@ from os import path
 from hashlib import md5
 from typing import Any, Dict
 from ..utils.files import is_file_exists, create_folder_if_not_present
-from ..connection import Connection, ConnectionType
+from ..storages.connection import Connection, ConnectionType
 from ..utils.log import log
 
 _LS_CONFIG_FILE_NAME = ".sqllsrc.json"

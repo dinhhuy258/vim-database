@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 from .sql_client import SqlClient
-from ..connection import Connection
+from ..storages.connection import Connection
 from ..utils.log import log
 
 

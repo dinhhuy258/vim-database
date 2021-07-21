@@ -2,7 +2,7 @@ from functools import partial
 from typing import Optional, Tuple
 
 from ..concurrents.executors import run_in_executor
-from ..connection import (Connection, ConnectionType, store_connection, remove_connection)
+from ..storages.connection import (Connection, ConnectionType, store_connection, remove_connection)
 from ..utils.log import log
 from ..configs.config import UserConfig
 from ..states.state import Mode, State

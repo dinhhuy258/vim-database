@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
 from ..concurrents.executors import run_in_executor
-from ..connection import (
+from ..storages.connection import (
     Connection,
     get_connections,
 )

@@ -2,7 +2,7 @@ import abc
 import subprocess
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from ..connection import Connection
+from ..storages.connection import Connection
 
 
 @dataclass(frozen=True)
