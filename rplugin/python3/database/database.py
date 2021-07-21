@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 
 from .connection_manager import show_connections, new_connection, delete_connection_from_list, select_connection
 from .concurrents.executors import run_in_executor
-from .connection import (get_default_connection)
 from .logging import log
 from .configs.config import UserConfig
 from .configs.lsp_config import switch_database_connection as lsp_switch_database_connection
@@ -332,17 +331,11 @@ async def toggle(settings: UserConfig, state: State) -> None:
 
 
 async def show_databases(settings: UserConfig, state: State) -> None:
-    if state.selected_connection is None:
-        state.selected_connection = await run_in_executor(get_default_connection)
-
-    if state.selected_connection is None:
+    if not state.connections:
         log.info("[vim-database] No connection found")
         return
 
     state.mode = Mode.DATABASE
-    if state.selected_database is None:
-        state.selected_database = state.selected_connection.database
-
     window = await async_call(partial(open_database_window, settings))
 
     def _get_databases():
@@ -357,7 +350,8 @@ async def show_databases(settings: UserConfig, state: State) -> None:
 
 
 async def list_tables_fzf(_: UserConfig, state: State) -> None:
-    if not await state.load_connection() or not await state.load_database():
+    if not state.connections:
+        log.info("[vim-database] No connection found")
         return
 
     def _get_tables():
@@ -370,7 +364,8 @@ async def list_tables_fzf(_: UserConfig, state: State) -> None:
 
 
 async def show_tables(settings: UserConfig, state: State) -> None:
-    if not await state.load_connection() or not await state.load_database():
+    if not state.connections:
+        log.info("[vim-database] No connection found")
         return
 
     state.mode = Mode.TABLE
@@ -707,14 +702,16 @@ async def toggle_query(settings: UserConfig, state: State) -> None:
 
 
 async def lsp_config(_: UserConfig, state: State) -> None:
-    if not await state.load_connection() or not await state.load_database():
+    if not state.connections:
+        log.info("[vim-database] No connection found")
         return
 
     await run_in_executor(partial(lsp_switch_database_connection, state.selected_connection, state.selected_database))
 
 
 async def show_query(settings: UserConfig, state: State) -> None:
-    if not await state.load_connection() or not await state.load_database():
+    if not state.connections:
+        log.info("[vim-database] No connection found")
         return
 
     await async_call(partial(open_query_window, settings))
@@ -725,7 +722,8 @@ async def quit_query(_: UserConfig, __: State) -> None:
 
 
 async def run_query(settings: UserConfig, state: State) -> None:
-    if not await state.load_connection() or not await state.load_database():
+    if not state.connections:
+        log.info("[vim-database] No connection found")
         return
 
     query = await async_call(get_query)

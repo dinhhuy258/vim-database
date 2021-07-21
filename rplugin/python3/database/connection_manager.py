@@ -2,14 +2,7 @@ from functools import partial
 from typing import Optional, Tuple
 
 from .concurrents.executors import run_in_executor
-from .connection import (
-    Connection,
-    ConnectionType,
-    store_connection,
-    delete_connection,
-    get_connections,
-    get_default_connection,
-)
+from .connection import (Connection, ConnectionType, store_connection, delete_connection)
 from .logging import log
 from .configs.config import UserConfig
 from .states.state import Mode, State
@@ -28,7 +21,13 @@ from .views.database_window import (open_database_window, get_current_database_w
 async def new_connection(settings: UserConfig, state: State) -> None:
     connection = await async_call(_new_connection)
     if connection is not None:
+        # Store the connection
         await run_in_executor(partial(store_connection, connection))
+
+        state.connections.append(connection)
+        if state.selected_connection is None:
+            state.selected_connection = connection
+
         # Update connections table
         is_window_open = await async_call(is_database_window_open)
         if is_window_open and state.mode == Mode.CONNECTION:
@@ -39,15 +38,7 @@ async def new_connection(settings: UserConfig, state: State) -> None:
 
 async def show_connections(settings: UserConfig, state: State) -> None:
     window = await async_call(partial(open_database_window, settings))
-
     state.mode = Mode.CONNECTION
-
-    def _get_connections() -> list:
-        return list(get_connections())
-
-    state.connections = await run_in_executor(_get_connections)
-    if state.selected_connection is None:
-        state.selected_connection = get_default_connection()
 
     connection_headers, connection_rows, selected_index = _get_connection_datas_from_state(state)
     await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
@@ -55,7 +46,7 @@ async def show_connections(settings: UserConfig, state: State) -> None:
 
 
 async def select_connection(settings: UserConfig, state: State) -> None:
-    if state.mode != Mode.CONNECTION or len(state.connections) == 0:
+    if state.mode != Mode.CONNECTION or not state.connections:
         return
 
     connection_index = await async_call(partial(_get_connection_index, state))
@@ -78,13 +69,16 @@ async def delete_connection_from_list(settings: UserConfig, state: State) -> Non
         return
 
     connection = state.connections[connection_index]
+
     ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
     if not ans:
         return
 
     await run_in_executor(partial(delete_connection, connection))
+
+    del state.connections[connection_index]
     if connection.name == state.selected_connection.name:
-        state.selected_connection = None
+        state.load_default_connection()
 
     # Update connections table
     await show_connections(settings, state)

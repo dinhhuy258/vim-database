@@ -5,7 +5,7 @@ from logging import log
 from ..concurrents.executors import run_in_executor
 from ..connection import (
     Connection,
-    get_default_connection,
+    get_connections,
 )
 
 
@@ -33,37 +33,34 @@ class State:
     filter_condition: Optional[str]
     order: Optional[Tuple[str, str]]
 
-    async def load_connection(self) -> bool:
-        if self.selected_connection is None:
-            self.selected_connection = await run_in_executor(get_default_connection)
-
-        if self.selected_connection is None:
-            log.info("[vim-database] No connection found")
-            return False
-
-        return True
-
-    async def load_database(self) -> bool:
-        if self.selected_database is None:
+    def load_default_connection(self):
+        if self.connections:
+            self.selected_connection = self.connections[0]
+            for connection in self.connections:
+                if connection.name == "default":
+                    self.selected_connection = connection
+                    break
             self.selected_database = self.selected_connection.database
 
-        if self.selected_database is None:
-            log.info("[vim-database] No database found")
-            return False
 
-        return True
+async def init_state() -> State:
+    state = State(mode=Mode.CONNECTION,
+                  connections=list(),
+                  selected_connection=None,
+                  databases=list(),
+                  selected_database=None,
+                  tables=list(),
+                  selected_table=None,
+                  result=None,
+                  filter_pattern=None,
+                  filter_column=None,
+                  filter_condition=None,
+                  order=None)
 
+    def _get_connections() -> list:
+        return list(get_connections())
 
-def init_state() -> State:
-    return State(mode=Mode.CONNECTION,
-                 connections=list(),
-                 selected_connection=None,
-                 databases=list(),
-                 selected_database=None,
-                 tables=list(),
-                 selected_table=None,
-                 result=None,
-                 filter_pattern=None,
-                 filter_column=None,
-                 filter_condition=None,
-                 order=None)
+    state.connections = await run_in_executor(_get_connections)
+    state.load_default_connection()
+
+    return state

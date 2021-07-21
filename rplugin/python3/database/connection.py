@@ -48,15 +48,3 @@ def get_connections() -> Iterator[Connection]:
     with shelve.open(_get_connection_store_file_path()) as connection_store:
         for connection_name in connection_store:
             yield connection_store[connection_name]
-
-
-def get_default_connection() -> Optional[Connection]:
-    with shelve.open(_get_connection_store_file_path()) as connection_store:
-        connection_names = list(connection_store.keys())
-        if len(connection_names) == 0:
-            return None
-        for connection_name in connection_names:
-            if connection_name == "default":
-                return connection_store[connection_name]
-
-        return connection_store[connection_names[0]]

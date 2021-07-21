@@ -51,7 +51,7 @@ class DatabasePlugin(object):
         init_nvim(self._nvim)
         init_log(self._nvim)
         self._settings = None
-        self._state = init_state()
+        self._state = None
         database_workspace = get_global_var("database_workspace", os.getcwd())
         os.chdir(database_workspace)
 
@@ -76,6 +76,8 @@ class DatabasePlugin(object):
             async with self._lock:
                 if self._settings is None:
                     self._settings = await load_config()
+                if self._state is None:
+                    self._state = await init_state()
                 await func(self._settings, self._state, *args)
 
         self._submit(run())
