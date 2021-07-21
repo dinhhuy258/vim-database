@@ -6,7 +6,7 @@ from .transitions.connection_ops import show_connections, new_connection, delete
 from .concurrents.executors import run_in_executor
 from .utils.log import log
 from .configs.config import UserConfig
-from .configs.lsp_config import switch_database_connection as lsp_switch_database_connection
+from .transitions.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
 from .utils.ascii_table import ascii_table
