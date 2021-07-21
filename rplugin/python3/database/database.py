@@ -6,8 +6,8 @@ from .connection_manager import show_connections, new_connection, delete_connect
 from .concurrents.executors import run_in_executor
 from .connection import (get_default_connection)
 from .logging import log
-from .settings.config import UserConfig
-from .settings.lsp_config import switch_database_connection as lsp_switch_database_connection
+from .configs.config import UserConfig
+from .configs.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
 from .utils.ascii_table import ascii_table

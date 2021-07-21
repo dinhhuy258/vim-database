@@ -11,7 +11,7 @@ from .connection import (
     get_default_connection,
 )
 from .logging import log
-from .settings.config import UserConfig
+from .configs.config import UserConfig
 from .states.state import Mode, State
 from .utils.ascii_table import ascii_table
 from .utils.files import is_file_exists

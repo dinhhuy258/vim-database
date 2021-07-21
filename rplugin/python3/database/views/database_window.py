@@ -1,7 +1,7 @@
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
 from typing import Optional, Tuple
-from ..settings.config import UserConfig
+from ..configs.config import UserConfig
 from ..utils.nvim import (
     find_windows_in_tab,
     get_buffer_option,

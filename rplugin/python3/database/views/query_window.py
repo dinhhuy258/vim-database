@@ -17,7 +17,7 @@ from ..utils.nvim import (
     close_window,
     get_buffer_content,
 )
-from ..settings.config import UserConfig
+from ..configs.config import UserConfig
 
 _VIM_DATABASE_QUERY_TITLE = "[vim-database] Query"
 _VIM_DATABASE_QUERY_BORDER_CHARS = ['─', '│', '─', '│', '┌', '┐', '┘', '└']
