@@ -2,6 +2,7 @@ import re
 from functools import partial
 from typing import Optional, Tuple
 
+from .transitions.database_ops import show_databases, select_database
 from .transitions.connection_ops import show_connections, new_connection, delete_connection, select_connection
 from .concurrents.executors import run_in_executor
 from .utils.log import log
@@ -51,19 +52,6 @@ def _get_table_datas_from_state(state: State) -> Tuple[list, list, int]:
             selected_index = index
 
     return ["Table"], table_datas, selected_index
-
-
-def _get_database_datas_from_state(state: State) -> Tuple[list, list, int]:
-    database_datas = []
-    selected_index = 0
-    for index, database in enumerate(state.databases):
-        if state.selected_database == database:
-            database_datas.append([database + " (*)"])
-            selected_index = index
-        else:
-            database_datas.append([database])
-
-    return ["Database"], database_datas, selected_index
 
 
 async def _delete_result(configs: UserConfig, state: State) -> None:
@@ -133,7 +121,6 @@ async def _delete_table(configs: UserConfig, state: State) -> None:
 
 
 async def _show_table_info(configs: UserConfig, state: State, table: str) -> None:
-
     def get_table_info():
         sql_client = SqlClientFactory.create(state.selected_connection)
         return sql_client.describe_table(state.selected_database, table)
@@ -169,7 +156,6 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
 
 
 async def _show_table_content(configs: UserConfig, state: State, table: str) -> None:
-
     def get_table_content():
         sql_client = SqlClientFactory.create(state.selected_connection)
         query = "SELECT *" if state.filter_column is None else "SELECT " + state.filter_column
@@ -199,25 +185,6 @@ async def _show_table_content(configs: UserConfig, state: State, table: str) -> 
     await _show_result(configs, headers, rows)
 
 
-async def _select_database(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.DATABASE or len(state.databases) == 0:
-        return
-
-    database_index = await async_call(_get_database_index)
-    if database_index is None:
-        return
-
-    state.selected_database = state.databases[database_index]
-
-    # Update databases table
-    window = await async_call(partial(open_database_window, configs))
-    database_headers, database_rows, selected_index = _get_database_datas_from_state(state)
-    await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
-
-    await show_databases(configs, state)
-
-
 async def _select_table(configs: UserConfig, state: State) -> None:
     state.filter_condition = None
     state.filter_column = None
@@ -228,17 +195,6 @@ async def _select_table(configs: UserConfig, state: State) -> None:
     table = state.tables[table_index]
 
     await _show_table_content(configs, state, table)
-
-
-def _get_database_index(state: State) -> Optional[int]:
-    row = get_current_database_window_row()
-    database_size = len(state.databases)
-    # Minus 4 for header of the table
-    database_index = row - 4
-    if database_index < 0 or database_index >= database_size:
-        return None
-
-    return database_index
 
 
 def _get_result_index(state: State) -> Optional[int]:
@@ -287,7 +243,6 @@ def _get_table_index(state: State) -> Optional[int]:
 
 
 async def _table_filter(configs: UserConfig, state: State) -> None:
-
     def get_filter_pattern() -> Optional[str]:
         pattern = state.filter_pattern if state.filter_pattern is not None else ""
         return get_input("New filter: ", pattern)
@@ -299,7 +254,6 @@ async def _table_filter(configs: UserConfig, state: State) -> None:
 
 
 async def _result_filter(configs: UserConfig, state: State) -> None:
-
     def get_filter_condition() -> Optional[str]:
         condition = state.filter_condition if state.filter_condition is not None else ""
         return get_input("New condition: ", condition)
@@ -328,25 +282,6 @@ async def toggle(configs: UserConfig, state: State) -> None:
     else:
         # Fallback
         await show_connections(configs, state)
-
-
-async def show_databases(configs: UserConfig, state: State) -> None:
-    if not state.connections:
-        log.info("[vim-database] No connection found")
-        return
-
-    state.mode = Mode.DATABASE
-    window = await async_call(partial(open_database_window, configs))
-
-    def _get_databases():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_databases()
-
-    state.databases = await run_in_executor(_get_databases)
-
-    database_headers, database_rows, selected_index = _get_database_datas_from_state(state)
-    await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def list_tables_fzf(_: UserConfig, state: State) -> None:
@@ -583,7 +518,7 @@ async def edit(configs: UserConfig, state: State) -> None:
         ans = await async_call(
             partial(
                 confirm, "UPDATE " + state.selected_table + " SET " + edit_column + " = " + new_value + " WHERE " +
-                primary_key + " = " + primary_key_value))
+                         primary_key + " = " + primary_key_value))
         if not ans:
             return
 
@@ -620,7 +555,7 @@ async def select(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
         await select_connection(configs, state)
     elif state.mode == Mode.DATABASE and len(state.databases) != 0:
-        await _select_database(configs, state)
+        await select_database(configs, state)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await _select_table(configs, state)
     elif state.mode == Mode.INFO_RESULT:
