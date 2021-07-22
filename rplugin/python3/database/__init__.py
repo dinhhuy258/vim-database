@@ -1,19 +1,11 @@
 import os
-from pynvim import Nvim, plugin, command, function
 from asyncio import AbstractEventLoop, Lock, run_coroutine_threadsafe
 from typing import Any, Awaitable, Callable, Sequence
 
-from .transitions.connection_ops import show_connections
-from .transitions.database_ops import show_databases
-from .transitions.table_ops import list_tables_fzf
-from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, select, delete, new, info,
-                                   refresh, close, toggle)
-from .states.state import init_state
-from .configs.config import load_config
+from pynvim import Nvim, plugin, command, function
+
 from .concurrents.executor_service import ExecutorService
-from .utils.nvim import init_nvim, get_global_var
-from .utils.log import log, init_log
-from .utils.files import create_folder_if_not_present
+from .configs.config import load_config
 from .database import (
     show_tables,
     lsp_config,
@@ -29,7 +21,16 @@ from .database import (
     clear_filter,
     run_query,
     show_table_content,
+    delete_result,
 )
+from .states.state import init_state, Mode
+from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
+from .transitions.database_ops import show_databases, select_database
+from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table
+from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
+from .utils.files import create_folder_if_not_present
+from .utils.log import log, init_log
+from .utils.nvim import init_nvim, get_global_var
 
 
 @plugin
@@ -86,99 +87,122 @@ class DatabasePlugin(object):
         self._run(lsp_config)
 
     @function('VimDatabase_quit')
-    def quit_function(self, args: Sequence[Any]) -> None:
+    def quit_function(self, _: Sequence[Any]) -> None:
         self._run(close)
 
     @function('VimDatabase_show_connections')
-    def show_connections_function(self, args: Sequence[Any]) -> None:
+    def show_connections_function(self, _: Sequence[Any]) -> None:
         self._run(show_connections)
 
     @function('VimDatabase_show_databases')
-    def show_databases_function(self, args: Sequence[Any]) -> None:
+    def show_databases_function(self, _: Sequence[Any]) -> None:
         self._run(show_databases)
 
     @function('VimDatabase_show_tables')
-    def show_tables_function(self, args: Sequence[Any]) -> None:
+    def show_tables_function(self, _: Sequence[Any]) -> None:
         self._run(show_tables)
 
     @function('VimDatabase_show_query')
-    def show_query_function(self, args: Sequence[Any]) -> None:
+    def show_query_function(self, _: Sequence[Any]) -> None:
         self._run(show_query)
 
     @function('VimDatabase_select')
-    def select_function(self, args: Sequence[Any]) -> None:
-        self._run(select)
+    def select_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.CONNECTION and self._state.connections:
+            self._run(select_connection)
+        elif self._state.mode == Mode.DATABASE and self._state.databases:
+            self._run(select_database)
+        elif self._state.mode == Mode.TABLE and self._state.tables:
+            self._run(select_table)
+        elif self._state.mode == Mode.INFO_RESULT:
+            self._run(show_table_content, self._state.selected_table)
 
     @function('VimDatabase_delete')
-    def delete_function(self, args: Sequence[Any]) -> None:
-        self._run(delete)
+    def delete_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.CONNECTION and self._state.connections:
+            self._run(delete_connection)
+        elif self._state.mode == Mode.TABLE and self._state.tables:
+            self._run(delete_table)
+        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+            self._run(delete_result)
 
     @function('VimDatabase_new')
-    def new_function(self, args: Sequence[Any]) -> None:
-        self._run(new)
+    def new_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.CONNECTION:
+            self._run(new_connection)
 
     @function('VimDatabase_copy')
-    def copy_function(self, args: Sequence[Any]) -> None:
+    def copy_function(self, _: Sequence[Any]) -> None:
         self._run(copy)
 
     @function('VimDatabase_edit')
-    def edit_function(self, args: Sequence[Any]) -> None:
+    def edit_function(self, _: Sequence[Any]) -> None:
         self._run(edit)
 
     @function('VimDatabase_show_update_query')
-    def show_update_query_function(self, args: Sequence[Any]) -> None:
+    def show_update_query_function(self, _: Sequence[Any]) -> None:
         self._run(show_update_query)
 
     @function('VimDatabase_show_copy_query')
-    def show_copy_query_function(self, args: Sequence[Any]) -> None:
+    def show_copy_query_function(self, _: Sequence[Any]) -> None:
         self._run(show_copy_query)
 
     @function('VimDatabase_show_insert_query')
-    def show_insert_query_function(self, args: Sequence[Any]) -> None:
+    def show_insert_query_function(self, _: Sequence[Any]) -> None:
         self._run(show_insert_query)
 
     @function('VimDatabase_info')
-    def info_function(self, args: Sequence[Any]) -> None:
-        self._run(info)
+    def info_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.TABLE and self._state.tables:
+            self._run(describe_table)
+        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+            self._run(show_table_info, self._state.selected_table)
 
     @function('VimDatabase_filter')
-    def filter_function(self, args: Sequence[Any]) -> None:
+    def filter_function(self, _: Sequence[Any]) -> None:
         self._run(new_filter)
 
     @function('VimDatabase_clear_filter')
-    def clear_filter_function(self, args: Sequence[Any]) -> None:
+    def clear_filter_function(self, _: Sequence[Any]) -> None:
         self._run(clear_filter)
 
     @function('VimDatabase_filter_column')
-    def filter_column_function(self, args: Sequence[Any]) -> None:
+    def filter_column_function(self, _: Sequence[Any]) -> None:
         self._run(filter_column)
 
     @function('VimDatabase_sort')
-    def sort_function(self, args: Sequence[Any]) -> None:
+    def sort_function(self, _: Sequence[Any]) -> None:
         self._run(sort, "ASC")
 
     @function('VimDatabase_sort_reverse')
-    def sort_reverse_function(self, args: Sequence[Any]) -> None:
+    def sort_reverse_function(self, _: Sequence[Any]) -> None:
         self._run(sort, "DESC")
 
     @function('VimDatabase_clear_filter_column')
-    def clear_filter_column_function(self, args: Sequence[Any]) -> None:
+    def clear_filter_column_function(self, _: Sequence[Any]) -> None:
         self._run(clear_filter_column)
 
     @function('VimDatabase_refresh')
-    def refresh_function(self, args: Sequence[Any]) -> None:
-        self._run(refresh)
+    def refresh_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.DATABASE and self._state.databases:
+            self._run(show_databases)
+        elif self._state.mode == Mode.TABLE and self._state.tables:
+            self._run(show_tables)
+        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+            self._run(show_table_content, self._state.selected_table)
+        elif self._state.mode == Mode.INFO_RESULT:
+            self._run(show_table_info, self._state.selected_table)
 
     @function('VimDatabase_bigger')
-    def bigger_function(self, args: Sequence[Any]) -> None:
+    def bigger_function(self, _: Sequence[Any]) -> None:
         self._run(resize_database, 2)
 
     @function('VimDatabase_smaller')
-    def smaller_function(self, args: Sequence[Any]) -> None:
+    def smaller_function(self, _: Sequence[Any]) -> None:
         self._run(resize_database, -2)
 
     @function('VimDatabase_list_tables_fzf')
-    def list_tables_fzf_function(self, args: Sequence[Any]) -> None:
+    def list_tables_fzf_function(self, _: Sequence[Any]) -> None:
         self._run(list_tables_fzf)
 
     @function('VimDatabase_select_table_fzf')
@@ -186,9 +210,9 @@ class DatabasePlugin(object):
         self._run(show_table_content, str(args[0]))
 
     @function('VimDatabaseQuery_quit')
-    def quit_query_function(self, args: Sequence[Any]) -> None:
+    def quit_query_function(self, _: Sequence[Any]) -> None:
         self._run(close_query)
 
     @function('VimDatabaseQuery_run_query')
-    def run_query_function(self, args: Sequence[Any]) -> None:
+    def run_query_function(self, _: Sequence[Any]) -> None:
         self._run(run_query)

@@ -22,53 +22,6 @@ from ..views.query_window import (
 )
 
 
-async def close(_: UserConfig, __: State) -> None:
-    await async_call(close_database_window)
-
-
-async def new(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.CONNECTION:
-        await new_connection(configs, state)
-
-
-async def info(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.TABLE and len(state.tables) != 0:
-        await describe_table(configs, state)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await show_table_info(configs, state, state.selected_table)
-
-
-async def delete(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.CONNECTION and len(state.connections) != 0:
-        await delete_connection(configs, state)
-    elif state.mode == Mode.TABLE and len(state.tables) != 0:
-        await delete_table(configs, state)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await delete_result(configs, state)
-
-
-async def select(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.CONNECTION and len(state.connections) != 0:
-        await select_connection(configs, state)
-    elif state.mode == Mode.DATABASE and len(state.databases) != 0:
-        await select_database(configs, state)
-    elif state.mode == Mode.TABLE and len(state.tables) != 0:
-        await select_table(configs, state)
-    elif state.mode == Mode.INFO_RESULT:
-        await show_table_content(configs, state, state.selected_table)
-
-
-async def refresh(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.DATABASE and len(state.databases) != 0:
-        await show_databases(configs, state)
-    elif state.mode == Mode.TABLE and len(state.tables) != 0:
-        await show_tables(configs, state)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await show_table_content(configs, state, state.selected_table)
-    elif state.mode == Mode.INFO_RESULT:
-        await show_table_info(configs, state, state.selected_table)
-
-
 async def toggle(configs: UserConfig, state: State) -> None:
     is_window_open = await async_call(is_database_window_open)
     if is_window_open:
@@ -86,6 +39,10 @@ async def toggle(configs: UserConfig, state: State) -> None:
     else:
         # Fallback
         await show_connections(configs, state)
+
+
+async def close(_: UserConfig, __: State) -> None:
+    await async_call(close_database_window)
 
 
 async def resize_database(_: UserConfig, __: State, direction: int) -> None:
