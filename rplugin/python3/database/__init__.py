@@ -25,7 +25,7 @@ from .database import (
 from .states.state import init_state, Mode
 from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
 from .transitions.database_ops import show_databases, select_database
-from .transitions.lsp_config import lsp_config
+from .transitions.lsp_ops import lsp_config
 from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
