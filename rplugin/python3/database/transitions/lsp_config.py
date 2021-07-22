@@ -1,31 +1,26 @@
 import json
 import os
-from os import path
+from functools import partial
 from hashlib import md5
+from os import path
 from typing import Any, Dict
+
+from ..concurrents.executors import run_in_executor
+from ..configs.config import UserConfig
+from ..states.state import State
+from ..storages.connection import Connection, ConnectionType
 from ..utils.files import is_file_exists, create_folder_if_not_present
 from ..utils.log import log
-from ..storages.connection import Connection, ConnectionType
 
 _LS_CONFIG_FILE_NAME = ".sqllsrc.json"
 
 
-def _is_connection_configured(connection: Connection, selected_database: str, config_connection: Dict[str,
-                                                                                                      Any]) -> bool:
-    if not config_connection["adapter"].lower().startswith(connection.connection_type.to_string().lower()):
-        return False
+async def lsp_config(_: UserConfig, state: State) -> None:
+    if not state.connections:
+        log.info("[vim-database] No connection found")
+        return
 
-    if config_connection["adapter"] == "sqlite3":
-        return config_connection["filename"] == selected_database
-
-    if not config_connection["database"] != selected_database:
-        return False
-    if not config_connection["host"] != connection.host:
-        return False
-    if not config_connection["port"] != connection.port:
-        return False
-
-    return True
+    await run_in_executor(partial(switch_database_connection, state.selected_connection, state.selected_database))
 
 
 def switch_database_connection(connection: Connection, database: str) -> None:
@@ -95,3 +90,21 @@ def switch_database_connection(connection: Connection, database: str) -> None:
     config_file.write(json.dumps({"connections": config_connections}, indent=2))
     config_file.close()
     log.info("[vim-database] Switch database connection successfully. Please restart sql-language-server")
+
+
+def _is_connection_configured(connection: Connection, selected_database: str, config_connection: Dict[str,
+                                                                                                      Any]) -> bool:
+    if not config_connection["adapter"].lower().startswith(connection.connection_type.to_string().lower()):
+        return False
+
+    if config_connection["adapter"] == "sqlite3":
+        return config_connection["filename"] == selected_database
+
+    if not config_connection["database"] != selected_database:
+        return False
+    if not config_connection["host"] != connection.host:
+        return False
+    if not config_connection["port"] != connection.port:
+        return False
+
+    return True

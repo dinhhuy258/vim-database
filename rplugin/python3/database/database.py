@@ -5,7 +5,6 @@ from .concurrents.executors import run_in_executor
 from .configs.config import UserConfig
 from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
-from .transitions.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .transitions.shared.show_result import show_result
 from .transitions.table_ops import (show_tables, table_filter)
 from .transitions.shared.show_table_content import show_table_content
@@ -382,14 +381,6 @@ async def clear_filter(configs: UserConfig, state: State) -> None:
     elif state.mode == Mode.TABLE_CONTENT_RESULT and state.filter_condition is not None:
         state.filter_condition = None
         await show_table_content(configs, state, state.selected_table)
-
-
-async def lsp_config(_: UserConfig, state: State) -> None:
-    if not state.connections:
-        log.info("[vim-database] No connection found")
-        return
-
-    await run_in_executor(partial(lsp_switch_database_connection, state.selected_connection, state.selected_database))
 
 
 async def run_query(configs: UserConfig, state: State) -> None:
