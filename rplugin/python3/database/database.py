@@ -1,26 +1,25 @@
-import re
 from functools import partial
 from typing import Optional, Tuple
 
-from .transitions.database_ops import show_databases, select_database
-from .transitions.connection_ops import show_connections, new_connection, delete_connection, select_connection
+from .transitions.shared.show_result import show_result
 from .concurrents.executors import run_in_executor
-from .utils.log import log
 from .configs.config import UserConfig
-from .transitions.lsp_config import switch_database_connection as lsp_switch_database_connection
 from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
-from .utils.ascii_table import ascii_table
+from .transitions.connection_ops import show_connections, new_connection, delete_connection, select_connection
+from .transitions.database_ops import show_databases, select_database
+from .transitions.lsp_config import switch_database_connection as lsp_switch_database_connection
+from .transitions.table_ops import (show_tables, show_table_info, describe_table, delete_table, table_filter,
+                                    select_table)
+from .utils.log import log
 from .utils.nvim import (
     call_function,
     async_call,
     confirm,
     get_input,
-    set_cursor,
     render,
 )
 from .views.database_window import (
-    open_database_window,
     close_database_window,
     is_database_window_open,
     get_current_database_window_row,
@@ -34,24 +33,6 @@ from .views.query_window import (
     get_query,
     is_query_window_opened,
 )
-
-
-async def _show_result(configs: UserConfig, headers: list, rows: list) -> None:
-    window = await async_call(partial(open_database_window, configs))
-
-    await async_call(partial(render, window, ascii_table(headers, rows)))
-    await async_call(partial(set_cursor, window, (4, 0)))
-
-
-def _get_table_datas_from_state(state: State) -> Tuple[list, list, int]:
-    table_datas = []
-    selected_index = 0
-    for index, table in enumerate(state.tables):
-        table_datas.append([table])
-        if table == state.selected_table:
-            selected_index = index
-
-    return ["Table"], table_datas, selected_index
 
 
 async def _delete_result(configs: UserConfig, state: State) -> None:
@@ -97,104 +78,15 @@ async def _delete_result(configs: UserConfig, state: State) -> None:
     if delete_result:
         del result_rows[result_index]
         state.result = (result_headers, result_rows)
-        await _show_result(configs, result_headers, result_rows)
-
-
-async def _delete_table(configs: UserConfig, state: State) -> None:
-    table_index = await async_call(partial(_get_table_index, state))
-    if table_index is None:
-        return
-
-    table = state.tables[table_index]
-    ans = await async_call(partial(confirm, "Do you want to delete table " + table + "?"))
-    if not ans:
-        return
-
-    def delete_table():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        sql_client.delete_table(state.selected_database, table)
-
-    await run_in_executor(delete_table)
-
-    # Update tables
-    await show_tables(configs, state)
-
-
-async def _show_table_info(configs: UserConfig, state: State, table: str) -> None:
-    def get_table_info():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.describe_table(state.selected_database, table)
-
-    table_info = await run_in_executor(get_table_info)
-    if table_info is None:
-        return
-
-    state.mode = Mode.INFO_RESULT
-    await _show_result(configs, table_info[0], table_info[1:])
-
-
-async def _describe_table(configs: UserConfig, state: State) -> None:
-    table_index = await async_call(partial(_get_table_index, state))
-    if table_index is None:
-        return
-
-    table = state.tables[table_index]
-    state.selected_table = table
-    await _show_table_info(configs, state, table)
+        await show_result(configs, result_headers, result_rows)
 
 
 async def show_table_content(configs: UserConfig, state: State, table: str) -> None:
-    if state.selected_connection is None:
+    if not state.selected_connection:
         log.info("[vim-database] No connection found")
         return
 
-    if state.selected_database is None:
-        log.info("[vim-database] No database found")
-        return
-
-    await _show_table_content(configs, state, table)
-
-
-async def _show_table_content(configs: UserConfig, state: State, table: str) -> None:
-    def get_table_content():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        query = "SELECT *" if state.filter_column is None else "SELECT " + state.filter_column
-        query = query + " FROM " + table
-        if state.filter_condition is not None:
-            query = query + " WHERE " + state.filter_condition
-        if state.order is not None:
-            order_column, order_orientation = state.order
-            query = query + " ORDER BY " + order_column + " " + order_orientation
-        query = query + " LIMIT " + str(configs.results_limit)
-        return sql_client.run_query(state.selected_database, query)
-
-    table_content = await run_in_executor(get_table_content)
-    if table_content is None:
-        # Error
-        state.filter_condition = None
-        state.filter_column = None
-        state.order = None
-        return
-
-    table_empty = len(table_content) == 0
-    headers = [table] if table_empty else table_content[0]
-    rows = [] if table_empty else table_content[1:]
-    state.selected_table = table
-    state.result = (headers, rows)
-    state.mode = Mode.TABLE_CONTENT_RESULT
-    await _show_result(configs, headers, rows)
-
-
-async def _select_table(configs: UserConfig, state: State) -> None:
-    state.filter_condition = None
-    state.filter_column = None
-    state.order = None
-    table_index = await async_call(partial(_get_table_index, state))
-    if table_index is None:
-        return
-    table = state.tables[table_index]
-
-    await _show_table_content(configs, state, table)
+    await show_table_content(configs, state, table)
 
 
 def _get_result_index(state: State) -> Optional[int]:
@@ -231,28 +123,6 @@ def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
     return result_row, result_column - 1
 
 
-def _get_table_index(state: State) -> Optional[int]:
-    row = get_current_database_window_row()
-    table_size = len(state.tables)
-    # Minus 4 for header of the table
-    table_index = row - 4
-    if table_index < 0 or table_index >= table_size:
-        return None
-
-    return table_index
-
-
-async def _table_filter(configs: UserConfig, state: State) -> None:
-    def get_filter_pattern() -> Optional[str]:
-        pattern = state.filter_pattern if state.filter_pattern is not None else ""
-        return get_input("New filter: ", pattern)
-
-    filter_pattern = await async_call(get_filter_pattern)
-    if filter_pattern:
-        state.filter_pattern = filter_pattern
-        await show_tables(configs, state)
-
-
 async def _result_filter(configs: UserConfig, state: State) -> None:
     def get_filter_condition() -> Optional[str]:
         condition = state.filter_condition if state.filter_condition is not None else ""
@@ -262,7 +132,7 @@ async def _result_filter(configs: UserConfig, state: State) -> None:
     filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
     if filter_condition:
         state.filter_condition = filter_condition
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
 
 
 async def toggle(configs: UserConfig, state: State) -> None:
@@ -276,9 +146,9 @@ async def toggle(configs: UserConfig, state: State) -> None:
     elif state.mode == Mode.TABLE:
         await show_tables(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
     elif state.mode == Mode.INFO_RESULT:
-        await _show_table_info(configs, state, state.selected_table)
+        await show_table_info(configs, state, state.selected_table)
     else:
         # Fallback
         await show_connections(configs, state)
@@ -296,26 +166,6 @@ async def list_tables_fzf(_: UserConfig, state: State) -> None:
     tables = await run_in_executor(_get_tables)
 
     await async_call(partial(call_function, "VimDatabaseSelectTables", tables))
-
-
-async def show_tables(configs: UserConfig, state: State) -> None:
-    if not state.connections:
-        log.info("[vim-database] No connection found")
-        return
-
-    state.mode = Mode.TABLE
-    window = await async_call(partial(open_database_window, configs))
-
-    def _get_tables():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return list(
-            filter(lambda table: state.filter_pattern is None or re.search(state.filter_pattern, table),
-                   sql_client.get_tables(state.selected_database)))
-
-    state.tables = await run_in_executor(_get_tables)
-    table_headers, table_rows, selected_index = _get_table_datas_from_state(state)
-    await async_call(partial(render, window, ascii_table(table_headers, table_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
 
 async def quit(_: UserConfig, __: State) -> None:
@@ -474,7 +324,7 @@ async def copy(configs: UserConfig, state: State) -> None:
     if copy_result:
         result_rows.append(copy_row)
         state.result = (result_headers, result_rows)
-        await _show_result(configs, result_headers, result_rows)
+        await show_result(configs, result_headers, result_rows)
 
 
 async def edit(configs: UserConfig, state: State) -> None:
@@ -532,21 +382,21 @@ async def edit(configs: UserConfig, state: State) -> None:
         if update_result:
             result_rows[row][column] = new_value
             state.result = (result_headers, result_rows)
-            await _show_result(configs, result_headers, result_rows)
+            await show_result(configs, result_headers, result_rows)
 
 
 async def info(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.TABLE and len(state.tables) != 0:
-        await _describe_table(configs, state)
+        await describe_table(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await _show_table_info(configs, state, state.selected_table)
+        await show_table_info(configs, state, state.selected_table)
 
 
 async def delete(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.CONNECTION and len(state.connections) != 0:
         await delete_connection(configs, state)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
-        await _delete_table(configs, state)
+        await delete_table(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
         await _delete_result(configs, state)
 
@@ -557,14 +407,14 @@ async def select(configs: UserConfig, state: State) -> None:
     elif state.mode == Mode.DATABASE and len(state.databases) != 0:
         await select_database(configs, state)
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
-        await _select_table(configs, state)
+        await select_table(configs, state)
     elif state.mode == Mode.INFO_RESULT:
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
 
 
 async def new_filter(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.TABLE:
-        await _table_filter(configs, state)
+        await table_filter(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
         await _result_filter(configs, state)
 
@@ -581,7 +431,7 @@ async def filter_column(configs: UserConfig, state: State) -> None:
     filter_column = filter_column if filter_column is None else filter_column.strip()
     if filter_column:
         state.filter_column = filter_column
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
 
 
 async def sort(configs: UserConfig, state: State, orientation: str) -> None:
@@ -596,7 +446,7 @@ async def sort(configs: UserConfig, state: State, orientation: str) -> None:
     order_column = result_headers[column]
     state.order = (order_column, orientation)
 
-    await _show_table_content(configs, state, state.selected_table)
+    await show_table_content(configs, state, state.selected_table)
 
 
 async def clear_filter_column(configs: UserConfig, state: State) -> None:
@@ -605,7 +455,7 @@ async def clear_filter_column(configs: UserConfig, state: State) -> None:
 
     if state.filter_column is not None:
         state.filter_column = None
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
 
 
 async def clear_filter(configs: UserConfig, state: State) -> None:
@@ -614,7 +464,7 @@ async def clear_filter(configs: UserConfig, state: State) -> None:
         await show_tables(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT and state.filter_condition is not None:
         state.filter_condition = None
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
 
 
 async def refresh(configs: UserConfig, state: State) -> None:
@@ -623,9 +473,9 @@ async def refresh(configs: UserConfig, state: State) -> None:
     elif state.mode == Mode.TABLE and len(state.tables) != 0:
         await show_tables(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await _show_table_content(configs, state, state.selected_table)
+        await show_table_content(configs, state, state.selected_table)
     elif state.mode == Mode.INFO_RESULT:
-        await _show_table_info(configs, state, state.selected_table)
+        await show_table_info(configs, state, state.selected_table)
 
 
 async def toggle_query(configs: UserConfig, state: State) -> None:
@@ -681,13 +531,13 @@ async def run_query(configs: UserConfig, state: State) -> None:
             headers = ["Query executed successfully"]
 
         await async_call(close_query_window)
-        await _show_result(configs, headers, [])
+        await show_result(configs, headers, [])
         return
     state.selected_table = None
     state.result = None
     state.mode = Mode.QUERY_RESULT
     await async_call(close_query_window)
-    await _show_result(configs, query_result[0], query_result[1:])
+    await show_result(configs, query_result[0], query_result[1:])
 
 
 async def resize_database_window(_: UserConfig, direction: int) -> None:
