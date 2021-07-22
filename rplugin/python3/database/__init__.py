@@ -166,9 +166,9 @@ class DatabasePlugin(object):
         self._state.query_conditions = None
         self._state.filtered_columns = None
 
-        if self._state.mode == Mode.TABLE and self._state.filtered_tables is not None:
+        if self._state.mode == Mode.TABLE:
             self._run(show_tables)
-        elif self._state.mode == Mode.TABLE_CONTENT_RESULT and self._state.query_conditions is not None:
+        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
             self._run(show_tables, self._state.selected_table)
 
     @function('VimDatabase_filter_column')
