@@ -63,8 +63,8 @@ async def show_table_info(configs: UserConfig, state: State, table: str) -> None
 
 
 async def select_table(configs: UserConfig, state: State) -> None:
-    state.filter_condition = None
-    state.filter_column = None
+    state.query_conditions = None
+    state.filtered_columns = None
     state.order = None
     table_index = await async_call(partial(_get_table_index, state))
     if table_index is None:
@@ -76,13 +76,13 @@ async def select_table(configs: UserConfig, state: State) -> None:
 
 async def table_filter(configs: UserConfig, state: State) -> None:
 
-    def get_filter_pattern() -> Optional[str]:
-        pattern = state.filter_pattern if state.filter_pattern is not None else ""
-        return get_input("New filter: ", pattern)
+    def get_filtered_tables() -> Optional[str]:
+        _filtered_tables = state.filtered_tables if state.filtered_tables is not None else ""
+        return get_input("New filter: ", _filtered_tables)
 
-    filter_pattern = await async_call(get_filter_pattern)
-    if filter_pattern:
-        state.filter_pattern = filter_pattern
+    filtered_tables = await async_call(get_filtered_tables)
+    if filtered_tables:
+        state.filtered_tables = filtered_tables.strip()
         await show_tables(configs, state)
 
 
@@ -97,7 +97,7 @@ async def show_tables(configs: UserConfig, state: State) -> None:
     def _get_tables():
         sql_client = SqlClientFactory.create(state.selected_connection)
         return list(
-            filter(lambda table: state.filter_pattern is None or re.search(state.filter_pattern, table),
+            filter(lambda table: state.filtered_tables is None or re.search(state.filtered_tables, table),
                    sql_client.get_tables(state.selected_database)))
 
     state.tables = await run_in_executor(_get_tables)
@@ -116,11 +116,11 @@ async def delete_table(configs: UserConfig, state: State) -> None:
     if not ans:
         return
 
-    def delete_table():
+    def _delete_table():
         sql_client = SqlClientFactory.create(state.selected_connection)
         sql_client.delete_table(state.selected_database, table)
 
-    await run_in_executor(delete_table)
+    await run_in_executor(_delete_table)
 
     # Update tables
     await show_tables(configs, state)

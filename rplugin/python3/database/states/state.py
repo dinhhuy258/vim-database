@@ -28,9 +28,9 @@ class State:
     tables: list
     selected_table: Optional[str]
     result: Optional[Tuple[list, list]]
-    filter_pattern: Optional[str]
-    filter_column: Optional[str]
-    filter_condition: Optional[str]
+    filtered_tables: Optional[str]
+    filtered_columns: Optional[str]
+    query_conditions: Optional[str]
     order: Optional[Tuple[str, str]]
 
     def load_default_connection(self):
@@ -52,9 +52,9 @@ async def init_state() -> State:
                   tables=list(),
                   selected_table=None,
                   result=None,
-                  filter_pattern=None,
-                  filter_column=None,
-                  filter_condition=None,
+                  filtered_tables=None,
+                  filtered_columns=None,
+                  query_conditions=None,
                   order=None)
 
     def _get_connections() -> list:

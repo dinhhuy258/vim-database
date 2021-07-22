@@ -13,10 +13,10 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
 
     def get_table_content():
         sql_client = SqlClientFactory.create(state.selected_connection)
-        query = "SELECT *" if state.filter_column is None else "SELECT " + state.filter_column
+        query = "SELECT *" if state.filtered_columns is None else "SELECT " + state.filtered_columns
         query = query + " FROM " + table
-        if state.filter_condition is not None:
-            query = query + " WHERE " + state.filter_condition
+        if state.query_conditions is not None:
+            query = query + " WHERE " + state.query_conditions
         if state.order is not None:
             order_column, order_orientation = state.order
             query = query + " ORDER BY " + order_column + " " + order_orientation
@@ -26,8 +26,8 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
     table_content = await run_in_executor(get_table_content)
     if table_content is None:
         # Error
-        state.filter_condition = None
-        state.filter_column = None
+        state.query_conditions = None
+        state.filtered_columns = None
         state.order = None
         return
 

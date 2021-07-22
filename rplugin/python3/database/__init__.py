@@ -16,8 +16,6 @@ from .database import (
     new_filter,
     filter_column,
     sort,
-    clear_filter_column,
-    clear_filter,
     run_query,
     show_table_content,
     delete_result,
@@ -164,7 +162,14 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_clear_filter')
     def clear_filter_function(self, _: Sequence[Any]) -> None:
-        self._run(clear_filter)
+        self._state.filtered_tables = None
+        self._state.query_conditions = None
+        self._state.filtered_columns = None
+
+        if self._state.mode == Mode.TABLE and self._state.filtered_tables is not None:
+            self._run(show_tables)
+        elif self._state.mode == Mode.TABLE_CONTENT_RESULT and self._state.query_conditions is not None:
+            self._run(show_tables, self._state.selected_table)
 
     @function('VimDatabase_filter_column')
     def filter_column_function(self, _: Sequence[Any]) -> None:
@@ -180,7 +185,12 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, _: Sequence[Any]) -> None:
-        self._run(clear_filter_column)
+        if self._state.mode != Mode.TABLE_CONTENT_RESULT:
+            return
+
+        if self._state.filtered_columns is not None:
+            self._state.filtered_columns = None
+            self._run(show_table_content, self._state.selected_table)
 
     @function('VimDatabase_refresh')
     def refresh_function(self, _: Sequence[Any]) -> None:

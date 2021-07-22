@@ -110,13 +110,13 @@ def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
 async def _result_filter(configs: UserConfig, state: State) -> None:
 
     def get_filter_condition() -> Optional[str]:
-        condition = state.filter_condition if state.filter_condition is not None else ""
+        condition = state.query_conditions if state.query_conditions is not None else ""
         return get_input("New condition: ", condition)
 
     filter_condition = await async_call(get_filter_condition)
     filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
     if filter_condition:
-        state.filter_condition = filter_condition
+        state.query_conditions = filter_condition
         await show_table_content(configs, state, state.selected_table)
 
 
@@ -142,7 +142,7 @@ async def show_insert_query(configs: UserConfig, state: State) -> None:
 async def show_update_query(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
-    if state.filter_column is not None:
+    if state.filtered_columns is not None:
         log.info("[vim-database] Can not show update query in filter column mode")
         return
     result_headers, result_rows = state.result
@@ -185,7 +185,7 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
 async def show_copy_query(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
-    if state.filter_column is not None:
+    if state.filtered_columns is not None:
         log.info("[vim-database] Can not show copy query in filter column mode")
         return
 
@@ -221,7 +221,7 @@ async def show_copy_query(configs: UserConfig, state: State) -> None:
 async def copy(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
-    if state.filter_column is not None:
+    if state.filtered_columns is not None:
         log.info("[vim-database] Can not copy row in filter column mode")
         return
 
@@ -340,13 +340,13 @@ async def filter_column(configs: UserConfig, state: State) -> None:
         return
 
     def get_filter_column() -> Optional[str]:
-        filter_column = state.filter_column if state.filter_column is not None else ""
+        filter_column = state.filtered_columns if state.filtered_columns is not None else ""
         return get_input("New filter column: ", filter_column)
 
     filter_column = await async_call(get_filter_column)
     filter_column = filter_column if filter_column is None else filter_column.strip()
     if filter_column:
-        state.filter_column = filter_column
+        state.filtered_columns = filter_column
         await show_table_content(configs, state, state.selected_table)
 
 
@@ -363,24 +363,6 @@ async def sort(configs: UserConfig, state: State, orientation: str) -> None:
     state.order = (order_column, orientation)
 
     await show_table_content(configs, state, state.selected_table)
-
-
-async def clear_filter_column(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
-        return
-
-    if state.filter_column is not None:
-        state.filter_column = None
-        await show_table_content(configs, state, state.selected_table)
-
-
-async def clear_filter(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.TABLE and state.filter_pattern is not None:
-        state.filter_pattern = None
-        await show_tables(configs, state)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT and state.filter_condition is not None:
-        state.filter_condition = None
-        await show_table_content(configs, state, state.selected_table)
 
 
 async def run_query(configs: UserConfig, state: State) -> None:
