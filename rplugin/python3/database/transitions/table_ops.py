@@ -16,11 +16,26 @@ from ..utils.nvim import (
     get_input,
     set_cursor,
     render,
+    call_function,
 )
 from ..views.database_window import (
     open_database_window,
     get_current_database_window_row,
 )
+
+
+async def list_tables_fzf(_: UserConfig, state: State) -> None:
+    if not state.connections:
+        log.info("[vim-database] No connection found")
+        return
+
+    def _get_tables():
+        sql_client = SqlClientFactory.create(state.selected_connection)
+        return sql_client.get_tables(state.selected_database)
+
+    tables = await run_in_executor(_get_tables)
+
+    await async_call(partial(call_function, "VimDatabaseSelectTables", tables))
 
 
 async def describe_table(configs: UserConfig, state: State) -> None:
@@ -34,6 +49,7 @@ async def describe_table(configs: UserConfig, state: State) -> None:
 
 
 async def show_table_info(configs: UserConfig, state: State, table: str) -> None:
+
     def get_table_info():
         sql_client = SqlClientFactory.create(state.selected_connection)
         return sql_client.describe_table(state.selected_database, table)
@@ -59,6 +75,7 @@ async def select_table(configs: UserConfig, state: State) -> None:
 
 
 async def table_filter(configs: UserConfig, state: State) -> None:
+
     def get_filter_pattern() -> Optional[str]:
         pattern = state.filter_pattern if state.filter_pattern is not None else ""
         return get_input("New filter: ", pattern)

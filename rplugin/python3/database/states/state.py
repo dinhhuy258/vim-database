@@ -12,9 +12,10 @@ class Mode(Enum):
     CONNECTION = 1
     DATABASE = 2
     TABLE = 3
-    INFO_RESULT = 4
-    TABLE_CONTENT_RESULT = 5
-    QUERY_RESULT = 6
+    QUERY = 4
+    INFO_RESULT = 5
+    TABLE_CONTENT_RESULT = 6
+    QUERY_RESULT = 7
 
 
 @dataclass(frozen=False)

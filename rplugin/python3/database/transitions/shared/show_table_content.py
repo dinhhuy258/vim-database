@@ -3,9 +3,14 @@ from ...concurrents.executors import run_in_executor
 from ...configs.config import UserConfig
 from ...sql_clients.sql_client_factory import SqlClientFactory
 from ...states.state import Mode, State
+from ...utils.log import log
 
 
 async def show_table_content(configs: UserConfig, state: State, table: str) -> None:
+    if not state.selected_connection:
+        log.info("[vim-database] No connection found")
+        return
+
     def get_table_content():
         sql_client = SqlClientFactory.create(state.selected_connection)
         query = "SELECT *" if state.filter_column is None else "SELECT " + state.filter_column

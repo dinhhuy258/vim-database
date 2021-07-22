@@ -8,8 +8,7 @@ from ...utils.nvim import (
     render,
 )
 from ...views.database_window import (
-    open_database_window,
-)
+    open_database_window,)
 
 
 async def show_result(configs: UserConfig, headers: list, rows: list) -> None:

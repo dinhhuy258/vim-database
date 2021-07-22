@@ -3,6 +3,11 @@ from pynvim import Nvim, plugin, command, function
 from asyncio import AbstractEventLoop, Lock, run_coroutine_threadsafe
 from typing import Any, Awaitable, Callable, Sequence
 
+from .transitions.connection_ops import show_connections
+from .transitions.database_ops import show_databases
+from .transitions.table_ops import list_tables_fzf
+from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, select, delete, new, info,
+                                   refresh, close, toggle)
 from .states.state import init_state
 from .configs.config import load_config
 from .concurrents.executor_service import ExecutorService
@@ -10,33 +15,19 @@ from .utils.nvim import init_nvim, get_global_var
 from .utils.log import log, init_log
 from .utils.files import create_folder_if_not_present
 from .database import (
-    show_connections,
-    show_databases,
     show_tables,
-    toggle,
     lsp_config,
-    quit,
-    delete,
-    new,
     copy,
     edit,
     show_update_query,
     show_copy_query,
     show_insert_query,
-    info,
-    select,
     new_filter,
     filter_column,
     sort,
     clear_filter_column,
     clear_filter,
-    refresh,
-    resize_database_window,
-    show_query,
-    toggle_query,
-    quit_query,
     run_query,
-    list_tables_fzf,
     show_table_content,
 )
 
@@ -96,7 +87,7 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_quit')
     def quit_function(self, args: Sequence[Any]) -> None:
-        self._run(quit)
+        self._run(close)
 
     @function('VimDatabase_show_connections')
     def show_connections_function(self, args: Sequence[Any]) -> None:
@@ -180,11 +171,11 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_bigger')
     def bigger_function(self, args: Sequence[Any]) -> None:
-        self._run(resize_database_window, 2)
+        self._run(resize_database, 2)
 
     @function('VimDatabase_smaller')
     def smaller_function(self, args: Sequence[Any]) -> None:
-        self._run(resize_database_window, -2)
+        self._run(resize_database, -2)
 
     @function('VimDatabase_list_tables_fzf')
     def list_tables_fzf_function(self, args: Sequence[Any]) -> None:
@@ -196,7 +187,7 @@ class DatabasePlugin(object):
 
     @function('VimDatabaseQuery_quit')
     def quit_query_function(self, args: Sequence[Any]) -> None:
-        self._run(quit_query)
+        self._run(close_query)
 
     @function('VimDatabaseQuery_run_query')
     def run_query_function(self, args: Sequence[Any]) -> None:
