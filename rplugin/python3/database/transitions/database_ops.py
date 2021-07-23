@@ -26,11 +26,7 @@ async def show_databases(configs: UserConfig, state: State) -> None:
     state.mode = Mode.DATABASE
     window = await async_call(partial(open_database_window, configs))
 
-    def _get_databases():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_databases()
-
-    state.databases = await run_in_executor(_get_databases)
+    state.databases = await run_in_executor(partial(state.sql_client.get_databases, state.selected_connection))
 
     database_headers, database_rows, selected_index = _get_database_datas_from_state(state)
     await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
@@ -46,6 +42,7 @@ async def select_database(configs: UserConfig, state: State) -> None:
         return
 
     state.selected_database = state.databases[database_index]
+    state.sql_client = SqlClientFactory.create(state.selected_connection)
 
     # Update databases table
     window = await async_call(partial(open_database_window, configs))

@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Optional, Tuple
 
+from ..sql_clients.sql_client_factory import SqlClientFactory
 from ..concurrents.executors import run_in_executor
 from ..storages.connection import (Connection, ConnectionType, store_connection, remove_connection)
 from ..utils.log import log
@@ -28,6 +29,7 @@ async def new_connection(settings: UserConfig, state: State) -> None:
         if state.selected_connection is None:
             state.selected_connection = connection
             state.selected_database = connection.database
+            state.sql_client = SqlClientFactory.create(state.selected_connection)
 
         # Update connections table
         is_window_open = await async_call(is_database_window_open)
@@ -56,6 +58,7 @@ async def select_connection(settings: UserConfig, state: State) -> None:
 
     state.selected_connection = state.connections[connection_index]
     state.selected_database = state.selected_connection.database
+    state.sql_client = SqlClientFactory.create(state.selected_connection)
 
     # Update connections table
     window = await async_call(partial(open_database_window, settings))

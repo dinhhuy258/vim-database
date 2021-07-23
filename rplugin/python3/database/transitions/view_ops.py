@@ -2,14 +2,13 @@ from functools import partial
 
 from .shared.show_table_content import show_table_content
 from ..configs.config import UserConfig
-from ..database import delete_result
 from ..states.state import Mode, State
-from ..transitions.connection_ops import new_connection, delete_connection, select_connection, show_connections
-from ..transitions.database_ops import show_databases, select_database
-from ..transitions.table_ops import (show_tables, show_table_info, describe_table, delete_table, select_table)
+from ..transitions.connection_ops import show_connections
+from ..transitions.database_ops import show_databases
+from ..transitions.table_ops import (show_tables, show_table_info)
 from ..utils.log import log
 from ..utils.nvim import (
-    async_call,)
+    async_call, )
 from ..views.database_window import (
     close_database_window,
     resize,

@@ -7,7 +7,6 @@ from pynvim import Nvim, plugin, command, function
 from .concurrents.executor_service import ExecutorService
 from .configs.config import load_config
 from .database import (
-    show_tables,
     copy,
     edit,
     show_update_query,
@@ -24,7 +23,8 @@ from .states.state import init_state, Mode
 from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
 from .transitions.database_ops import show_databases, select_database
 from .transitions.lsp_ops import lsp_config
-from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table
+from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table, \
+    show_tables
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
 from .utils.log import log, init_log

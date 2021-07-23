@@ -1,7 +1,8 @@
+from functools import partial
+
 from .show_result import show_result
 from ...concurrents.executors import run_in_executor
 from ...configs.config import UserConfig
-from ...sql_clients.sql_client_factory import SqlClientFactory
 from ...states.state import Mode, State
 from ...utils.log import log
 
@@ -11,19 +12,16 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
         log.info("[vim-database] No connection found")
         return
 
-    def get_table_content():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        query = "SELECT *" if state.filtered_columns is None else "SELECT " + state.filtered_columns
-        query = query + " FROM " + table
-        if state.query_conditions is not None:
-            query = query + " WHERE " + state.query_conditions
-        if state.order is not None:
-            order_column, order_orientation = state.order
-            query = query + " ORDER BY " + order_column + " " + order_orientation
-        query = query + " LIMIT " + str(configs.results_limit)
-        return sql_client.run_query(state.selected_database, query)
+    query = "SELECT *" if state.filtered_columns is None else "SELECT " + state.filtered_columns
+    query = query + " FROM " + table
+    if state.query_conditions is not None:
+        query = query + " WHERE " + state.query_conditions
+    if state.order is not None:
+        order_column, order_orientation = state.order
+        query = query + " ORDER BY " + order_column + " " + order_orientation
+    query = query + " LIMIT " + str(configs.results_limit)
 
-    table_content = await run_in_executor(get_table_content)
+    table_content = await run_in_executor(partial(state.sql_client.run_query, state.selected_database, query))
     if table_content is None:
         # Error
         state.query_conditions = None

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
+
+from ..sql_clients.sql_client_factory import SqlClientFactory
+from ..sql_clients.sql_client import SqlClient
 from ..concurrents.executors import run_in_executor
 from ..storages.connection import (
     Connection,
@@ -23,6 +26,7 @@ class State:
     mode: Mode
     connections: list
     selected_connection: Optional[Connection]
+    sql_client: Optional[SqlClient]
     databases: list
     selected_database: Optional[str]
     tables: list
@@ -41,6 +45,7 @@ class State:
                     self.selected_connection = connection
                     break
             self.selected_database = self.selected_connection.database
+            self.sql_client = SqlClientFactory.create(self.selected_connection)
 
 
 async def init_state() -> State:
@@ -49,6 +54,7 @@ async def init_state() -> State:
                   selected_connection=None,
                   databases=list(),
                   selected_database=None,
+                  sql_client=None,
                   tables=list(),
                   selected_table=None,
                   result=None,

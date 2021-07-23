@@ -6,8 +6,8 @@ from .configs.config import UserConfig
 from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
 from .transitions.shared.show_result import show_result
-from .transitions.table_ops import (show_tables, table_filter)
 from .transitions.shared.show_table_content import show_table_content
+from .transitions.table_ops import (table_filter)
 from .utils.log import log
 from .utils.nvim import (
     async_call,
@@ -33,11 +33,8 @@ async def delete_result(configs: UserConfig, state: State) -> None:
         return
     result_headers, result_rows = state.result
 
-    def get_primary_key() -> Optional[str]:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_primary_key(state.selected_database, state.selected_table)
-
-    primary_key = await run_in_executor(get_primary_key)
+    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key, state.selected_database,
+                                                state.selected_table))
     if primary_key is None:
         log.info("[vim-database] No primary key found for table " + state.selected_table)
         return
@@ -61,13 +58,9 @@ async def delete_result(configs: UserConfig, state: State) -> None:
     if not ans:
         return
 
-    def delete() -> bool:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.delete(state.selected_database, state.selected_table,
-                                 (primary_key, "\'" + primary_key_value + "\'"))
-
-    delete_result = await run_in_executor(delete)
-    if delete_result:
+    delete_success = await run_in_executor(state.sql_client.delete, state.selected_database, state.selected_table,
+                                           (primary_key, "\'" + primary_key_value + "\'"))
+    if delete_success:
         del result_rows[result_index]
         state.result = (result_headers, result_rows)
         await show_result(configs, result_headers, result_rows)
@@ -108,7 +101,6 @@ def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
 
 
 async def _result_filter(configs: UserConfig, state: State) -> None:
-
     def get_filter_condition() -> Optional[str]:
         condition = state.query_conditions if state.query_conditions is not None else ""
         return get_input("New condition: ", condition)
@@ -123,11 +115,9 @@ async def _result_filter(configs: UserConfig, state: State) -> None:
 async def show_insert_query(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.TABLE_CONTENT_RESULT:
 
-        def get_template_insert_query():
-            sql_client = SqlClientFactory.create(state.selected_connection)
-            return sql_client.get_template_insert_query(state.selected_database, state.selected_table)
-
-        insert_query = await run_in_executor(get_template_insert_query)
+        insert_query = await run_in_executor(partial(state.sql_client.get_template_insert_query,
+                                                     state.selected_database,
+                                                     state.selected_table))
         if insert_query is None:
             return
 
@@ -154,11 +144,9 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         return
     result_row = result_rows[result_index]
 
-    def get_primary_key() -> Optional[str]:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_primary_key(state.selected_database, state.selected_table)
-
-    primary_key = await run_in_executor(get_primary_key)
+    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
+                                                state.selected_database,
+                                                state.selected_table))
     if primary_key is None:
         log.info("[vim-database] No primary key found for table " + state.selected_table)
         return
@@ -239,11 +227,9 @@ async def copy(configs: UserConfig, state: State) -> None:
     for header_index, header in enumerate(result_headers):
         header_map[header] = header_index
 
-    def get_unique_columns() -> Optional[str]:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_unique_columns(state.selected_database, state.selected_table)
-
-    unique_column_names = await run_in_executor(get_unique_columns)
+    unique_column_names = await run_in_executor(partial(state.sql_client.get_unique_columns,
+                                                        state.selected_database,
+                                                        state.selected_table))
     if len(unique_column_names) == 0:
         log.info("[vim-database] No unique column found")
         return
@@ -259,11 +245,11 @@ async def copy(configs: UserConfig, state: State) -> None:
         else:
             return
 
-    def _copy_row() -> bool:
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.copy(state.selected_database, state.selected_table, unique_columns, new_unique_column_values)
-
-    copy_result = await run_in_executor(_copy_row)
+    copy_result = await run_in_executor(partial(state.sql_client.copy,
+                                                state.selected_database,
+                                                state.selected_table,
+                                                unique_columns,
+                                                new_unique_column_values))
     if copy_result:
         result_rows.append(copy_row)
         state.result = (result_headers, result_rows)
@@ -284,12 +270,9 @@ async def edit(configs: UserConfig, state: State) -> None:
 
     new_value = await async_call(partial(get_input, "Edit column " + edit_column + ": ", edit_value))
     if new_value and new_value != edit_value:
-
-        def get_primary_key() -> Optional[str]:
-            sql_client = SqlClientFactory.create(state.selected_connection)
-            return sql_client.get_primary_key(state.selected_database, state.selected_table)
-
-        primary_key = await run_in_executor(get_primary_key)
+        primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
+                                                    state.selected_database,
+                                                    state.selected_table))
         if primary_key is None:
             log.info("[vim-database] No primary key found for table " + state.selected_table)
             return
@@ -311,18 +294,17 @@ async def edit(configs: UserConfig, state: State) -> None:
         ans = await async_call(
             partial(
                 confirm, "UPDATE " + state.selected_table + " SET " + edit_column + " = " + new_value + " WHERE " +
-                primary_key + " = " + primary_key_value))
+                         primary_key + " = " + primary_key_value))
         if not ans:
             return
 
-        def update() -> bool:
-            sql_client = SqlClientFactory.create(state.selected_connection)
-            return sql_client.update(state.selected_database, state.selected_table,
-                                     (edit_column, "\'" + new_value + "\'"),
-                                     (primary_key, "\'" + primary_key_value + "\'"))
-
-        update_result = await run_in_executor(update)
-        if update_result:
+        update_success = await run_in_executor(partial(state.sql_client.update,
+                                                       state.selected_database,
+                                                       state.selected_table,
+                                                       (edit_column, "\'" + new_value + "\'"),
+                                                       (primary_key, "\'" + primary_key_value + "\'")
+                                                       ))
+        if update_success:
             result_rows[row][column] = new_value
             state.result = (result_headers, result_rows)
             await show_result(configs, result_headers, result_rows)
@@ -374,11 +356,7 @@ async def run_query(configs: UserConfig, state: State) -> None:
     if query is None:
         return
 
-    def run_sql_query():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.run_query(state.selected_database, query)
-
-    query_result = await run_in_executor(run_sql_query)
+    query_result = await run_in_executor(partial(state.sql_client.run_query, state.selected_database, query))
     if query_result is None:
         return
 

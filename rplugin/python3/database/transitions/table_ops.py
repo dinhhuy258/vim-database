@@ -29,11 +29,7 @@ async def list_tables_fzf(_: UserConfig, state: State) -> None:
         log.info("[vim-database] No connection found")
         return
 
-    def _get_tables():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.get_tables(state.selected_database)
-
-    tables = await run_in_executor(_get_tables)
+    tables = await run_in_executor(partial(state.sql_client.get_tables, state.selected_database))
 
     await async_call(partial(call_function, "VimDatabaseSelectTables", tables))
 
@@ -49,12 +45,7 @@ async def describe_table(configs: UserConfig, state: State) -> None:
 
 
 async def show_table_info(configs: UserConfig, state: State, table: str) -> None:
-
-    def get_table_info():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        return sql_client.describe_table(state.selected_database, table)
-
-    table_info = await run_in_executor(get_table_info)
+    table_info = await run_in_executor(partial(state.sql_client.describe_table, state.selected_database, table))
     if table_info is None:
         return
 
@@ -95,10 +86,9 @@ async def show_tables(configs: UserConfig, state: State) -> None:
     window = await async_call(partial(open_database_window, configs))
 
     def _get_tables():
-        sql_client = SqlClientFactory.create(state.selected_connection)
         return list(
             filter(lambda table: state.filtered_tables is None or re.search(state.filtered_tables, table),
-                   sql_client.get_tables(state.selected_database)))
+                   state.sql_client.get_tables(state.selected_database)))
 
     state.tables = await run_in_executor(_get_tables)
     table_headers, table_rows, selected_index = _get_table_datas_from_state(state)
@@ -116,13 +106,9 @@ async def delete_table(configs: UserConfig, state: State) -> None:
     if not ans:
         return
 
-    def _delete_table():
-        sql_client = SqlClientFactory.create(state.selected_connection)
-        sql_client.delete_table(state.selected_database, table)
+    await run_in_executor(partial(state.sql_client.delete_table, state.selected_database, table))
 
-    await run_in_executor(_delete_table)
-
-    # Update tables
+    # Refresh tables
     await show_tables(configs, state)
 
 
