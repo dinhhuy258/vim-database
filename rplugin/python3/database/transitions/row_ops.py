@@ -1,20 +1,19 @@
 from functools import partial
 from typing import Optional, Tuple
 
-from .concurrents.executors import run_in_executor
-from .configs.config import UserConfig
-from .states.state import Mode, State
-from .transitions.shared.show_result import show_result
-from .transitions.shared.show_table_content import show_table_content
-from .transitions.table_ops import (table_filter)
-from .transitions.shared.get_row_index import get_row_index
-from .utils.log import log
-from .utils.nvim import (
+from ..concurrents.executors import run_in_executor
+from ..configs.config import UserConfig
+from ..states.state import Mode, State
+from ..transitions.shared.get_row_index import get_row_index
+from ..transitions.shared.show_result import show_result
+from ..transitions.shared.show_table_content import show_table_content
+from ..utils.log import log
+from ..utils.nvim import (
     async_call,
     confirm,
     get_input,
 )
-from .views.database_window import (
+from ..views.database_window import (
     get_current_database_window_line,
     get_current_database_window_cursor,
 )
@@ -57,40 +56,6 @@ async def delete_result(configs: UserConfig, state: State) -> None:
         del result_rows[result_index]
         state.result = (result_headers, result_rows)
         await show_result(configs, result_headers, result_rows)
-
-
-def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
-    row, column = get_current_database_window_cursor()
-    _, result_rows = state.result
-    result_size = len(result_rows)
-    # Minus 4 for header of the table
-    result_row = row - 4
-    if result_row < 0 or result_row >= result_size:
-        return None
-    line = get_current_database_window_line()
-    if line is None:
-        return None
-    if line[column] == '|':
-        return None
-    result_column = 0
-    for i in range(column):
-        if line[i] == '|':
-            result_column += 1
-
-    return result_row, result_column - 1
-
-
-async def _result_filter(configs: UserConfig, state: State) -> None:
-    def get_filter_condition() -> Optional[str]:
-        condition = state.query_conditions if state.query_conditions is not None else ""
-        return get_input("New condition: ", condition)
-
-    filter_condition = await async_call(get_filter_condition)
-    filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
-    if filter_condition:
-        state.query_conditions = filter_condition
-        await show_table_content(configs, state, state.selected_table)
-
 
 
 async def copy(configs: UserConfig, state: State) -> None:
@@ -197,13 +162,6 @@ async def edit(configs: UserConfig, state: State) -> None:
             await show_result(configs, result_headers, result_rows)
 
 
-async def new_filter(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.TABLE:
-        await table_filter(configs, state)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await _result_filter(configs, state)
-
-
 async def filter_column(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
@@ -232,4 +190,37 @@ async def sort(configs: UserConfig, state: State, orientation: str) -> None:
     state.order = (order_column, orientation)
 
     await show_table_content(configs, state, state.selected_table)
+
+
+async def result_filter(configs: UserConfig, state: State) -> None:
+    def get_filter_condition() -> Optional[str]:
+        condition = state.query_conditions if state.query_conditions is not None else ""
+        return get_input("New condition: ", condition)
+
+    filter_condition = await async_call(get_filter_condition)
+    filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
+    if filter_condition:
+        state.query_conditions = filter_condition
+        await show_table_content(configs, state, state.selected_table)
+
+
+def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
+    row, column = get_current_database_window_cursor()
+    _, result_rows = state.result
+    result_size = len(result_rows)
+    # Minus 4 for header of the table
+    result_row = row - 4
+    if result_row < 0 or result_row >= result_size:
+        return None
+    line = get_current_database_window_line()
+    if line is None:
+        return None
+    if line[column] == '|':
+        return None
+    result_column = 0
+    for i in range(column):
+        if line[i] == '|':
+            result_column += 1
+
+    return result_row, result_column - 1
 

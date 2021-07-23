@@ -6,15 +6,6 @@ from pynvim import Nvim, plugin, command, function
 
 from .concurrents.executor_service import ExecutorService
 from .configs.config import load_config
-from .database import (
-    copy,
-    edit,
-    new_filter,
-    filter_column,
-    sort,
-    show_table_content,
-    delete_result,
-)
 from .states.state import init_state, Mode
 from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
 from .transitions.database_ops import show_databases, select_database
@@ -22,6 +13,14 @@ from .transitions.query_ops import run_query, show_update_query, show_copy_query
 from .transitions.lsp_ops import lsp_config
 from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table, \
     show_tables
+from .transitions.row_ops import (
+    copy,
+    edit,
+    filter_column,
+    sort,
+    show_table_content,
+    delete_result,
+)
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
 from .utils.log import log, init_log
@@ -155,7 +154,10 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_filter')
     def filter_function(self, _: Sequence[Any]) -> None:
-        self._run(new_filter)
+        if self._state.mode == Mode.TABLE:
+            self._run(table_filter)
+        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+            self._run(result_filter)
 
     @function('VimDatabase_clear_filter')
     def clear_filter_function(self, _: Sequence[Any]) -> None:
