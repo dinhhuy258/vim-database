@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
-from ..transitions.shared.get_row_index import get_row_index
+from ..transitions.shared.get_current_row import get_current_row
 from ..transitions.shared.show_result import show_result
 from ..transitions.shared.show_table_content import show_table_content
 from ..utils.log import log
@@ -20,30 +20,14 @@ from ..views.database_window import (
 
 
 async def delete_result(configs: UserConfig, state: State) -> None:
-    result_index = await async_call(partial(get_row_index, state))
+    result_index = await async_call(partial(get_current_row, state))
     if result_index is None:
         return
     result_headers, result_rows = state.result
 
-    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key, state.selected_database,
-                                                state.selected_table))
+    primary_key, primary_key_value = await _get_primary_key_value(state, result_index)
     if primary_key is None:
-        log.info("[vim-database] No primary key found for table " + state.selected_table)
         return
-
-    primary_key_index = -1
-    header_index = 0
-    for header in result_headers:
-        if header == primary_key:
-            primary_key_index = header_index
-            break
-        header_index = header_index + 1
-
-    if primary_key_index == -1:
-        log.info("[vim-database] No primary key found in result columns")
-        return
-
-    primary_key_value = result_rows[result_index][primary_key_index]
 
     ans = await async_call(
         partial(confirm, "DELETE FROM " + state.selected_table + " WHERE " + primary_key + " = " + primary_key_value))
@@ -65,7 +49,7 @@ async def copy(configs: UserConfig, state: State) -> None:
         log.info("[vim-database] Can not copy row in filter column mode")
         return
 
-    result_index = await async_call(partial(get_row_index, state))
+    result_index = await async_call(partial(get_current_row, state))
     if result_index is None:
         return
     result_headers, result_rows = state.result
@@ -112,36 +96,15 @@ async def edit(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    result_index = await async_call(partial(_get_result_row_and_column, state))
-    if result_index is None:
+    edit_column, edit_value, row, column = await _get_current_cell_value(state)
+    if edit_column is None:
         return
-    result_headers, result_rows = state.result
-    row, column = result_index
-    edit_column = result_headers[column]
-    edit_value = result_rows[row][column]
 
     new_value = await async_call(partial(get_input, "Edit column " + edit_column + ": ", edit_value))
     if new_value and new_value != edit_value:
-        primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
-                                                    state.selected_database,
-                                                    state.selected_table))
+        primary_key, primary_key_value = await _get_primary_key_value(state, row)
         if primary_key is None:
-            log.info("[vim-database] No primary key found for table " + state.selected_table)
             return
-
-        primary_key_index = -1
-        header_index = 0
-        for header in result_headers:
-            if header == primary_key:
-                primary_key_index = header_index
-                break
-            header_index = header_index + 1
-
-        if primary_key_index == -1:
-            log.info("[vim-database] No primary key found in result columns")
-            return
-
-        primary_key_value = result_rows[row][primary_key_index]
 
         ans = await async_call(
             partial(
@@ -157,9 +120,10 @@ async def edit(configs: UserConfig, state: State) -> None:
                                                        (primary_key, "\'" + primary_key_value + "\'")
                                                        ))
         if update_success:
-            result_rows[row][column] = new_value
-            state.result = (result_headers, result_rows)
-            await show_result(configs, result_headers, result_rows)
+            data_headers, data_rows = state.result
+            data_rows[row][column] = new_value
+            state.result = (data_headers, data_rows)
+            await show_result(configs, data_headers, data_rows)
 
 
 async def filter_column(configs: UserConfig, state: State) -> None:
@@ -180,13 +144,11 @@ async def filter_column(configs: UserConfig, state: State) -> None:
 async def sort(configs: UserConfig, state: State, orientation: str) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
-    result_index = await async_call(partial(_get_result_row_and_column, state))
-    if result_index is None:
+
+    order_column, _, _, _ = await _get_current_cell_value(state)
+    if order_column is None:
         return
 
-    result_headers, result_rows = state.result
-    _, column = result_index
-    order_column = result_headers[column]
     state.order = (order_column, orientation)
 
     await show_table_content(configs, state, state.selected_table)
@@ -204,23 +166,48 @@ async def result_filter(configs: UserConfig, state: State) -> None:
         await show_table_content(configs, state, state.selected_table)
 
 
-def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
-    row, column = get_current_database_window_cursor()
-    _, result_rows = state.result
-    result_size = len(result_rows)
+def _get_current_row_and_column(state: State) -> Tuple[Optional[int], Optional[int]]:
+    row_cursor, column_cursor = get_current_database_window_cursor()
+
+    _, data_rows = state.result
+    result_size = len(data_rows)
+
     # Minus 4 for header of the table
-    result_row = row - 4
-    if result_row < 0 or result_row >= result_size:
-        return None
+    row = row_cursor - 4
     line = get_current_database_window_line()
-    if line is None:
-        return None
-    if line[column] == '|':
-        return None
-    result_column = 0
-    for i in range(column):
+    if row < 0 or row >= result_size or line is None or line[column_cursor] == '|':
+        return None, None
+
+    column = 0
+    for i in range(column_cursor):
         if line[i] == '|':
-            result_column += 1
+            column += 1
 
-    return result_row, result_column - 1
+    return row, column - 1
 
+
+async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional[str], Optional[int], Optional[int]]:
+    row, column = await async_call(partial(_get_current_row_and_column, state))
+    if row is None:
+        return None, None, None, None
+
+    data_headers, data_rows = state.result
+    return data_headers[column], data_rows[row][column], row, column
+
+
+async def _get_primary_key_value(state: State, row: int) -> Tuple[Optional[str], Optional[str]]:
+    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
+                                                state.selected_database,
+                                                state.selected_table))
+    if primary_key is None:
+        log.info("[vim-database] No primary key found for table " + state.selected_table)
+        return None, None
+
+    result_headers, result_rows = state.result
+
+    for header_index, header in result_headers:
+        if header == primary_key:
+            return primary_key, result_rows[row][header_index]
+
+    # Not reachable
+    return None, None

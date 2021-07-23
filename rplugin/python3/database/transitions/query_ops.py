@@ -1,7 +1,7 @@
 import re
 from functools import partial
 
-from .shared.get_row_index import get_row_index
+from .shared.get_current_row import get_current_row
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
@@ -78,7 +78,7 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
     if len(result_headers) <= 1:
         return
 
-    result_index = await async_call(partial(get_row_index, state))
+    result_index = await async_call(partial(get_current_row, state))
     if result_index is None:
         return
     result_row = result_rows[result_index]
@@ -120,7 +120,7 @@ async def show_copy_query(configs: UserConfig, state: State) -> None:
     if len(result_headers) <= 1:
         return
 
-    result_index = await async_call(partial(get_row_index, state))
+    result_index = await async_call(partial(get_current_row, state))
     if result_index is None:
         return
     result_row = result_rows[result_index]
