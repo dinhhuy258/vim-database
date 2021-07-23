@@ -12,14 +12,14 @@ from .transitions.database_ops import show_databases, select_database
 from .transitions.query_ops import run_query, show_update_query, show_copy_query, show_insert_query
 from .transitions.lsp_ops import lsp_config
 from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table, \
-    show_tables
-from .transitions.row_ops import (
+    show_tables, table_filter
+from .transitions.data_ops import (
     copy,
     edit,
     filter_columns,
     order,
     show_table_content,
-    delete_row,
+    delete_row, result_filter,
 )
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
