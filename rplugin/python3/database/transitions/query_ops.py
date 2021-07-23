@@ -54,9 +54,8 @@ async def run_query(configs: UserConfig, state: State) -> None:
 async def show_insert_query(configs: UserConfig, state: State) -> None:
     if state.mode == Mode.TABLE_CONTENT_RESULT:
 
-        insert_query = await run_in_executor(partial(state.sql_client.get_template_insert_query,
-                                                     state.selected_database,
-                                                     state.selected_table))
+        insert_query = await run_in_executor(
+            partial(state.sql_client.get_template_insert_query, state.selected_database, state.selected_table))
         if insert_query is None:
             return
 
@@ -71,9 +70,7 @@ async def show_insert_query(configs: UserConfig, state: State) -> None:
 async def show_update_query(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
-    if state.filtered_columns is not None:
-        log.info("[vim-database] Can not show update query in filter column mode")
-        return
+
     result_headers, result_rows = state.result
     if len(result_headers) <= 1:
         return
@@ -83,9 +80,8 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         return
     result_row = result_rows[result_index]
 
-    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
-                                                state.selected_database,
-                                                state.selected_table))
+    primary_key = await run_in_executor(
+        partial(state.sql_client.get_primary_key, state.selected_database, state.selected_table))
     if primary_key is None:
         log.info("[vim-database] No primary key found for table " + state.selected_table)
         return
@@ -111,9 +107,6 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
 
 async def show_copy_query(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
-        return
-    if state.filtered_columns is not None:
-        log.info("[vim-database] Can not show copy query in filter column mode")
         return
 
     result_headers, result_rows = state.result

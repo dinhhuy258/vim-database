@@ -33,7 +33,7 @@ class State:
     selected_table: Optional[str]
     result: Optional[Tuple[list, list]]
     filtered_tables: Optional[str]
-    filtered_columns: Optional[str]
+    filtered_columns: set[str]
     query_conditions: Optional[str]
     order: Optional[Tuple[str, str]]
 
@@ -59,7 +59,7 @@ async def init_state() -> State:
                   selected_table=None,
                   result=None,
                   filtered_tables=None,
-                  filtered_columns=None,
+                  filtered_columns=set(),
                   query_conditions=None,
                   order=None)
 

@@ -12,20 +12,19 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
         log.info("[vim-database] No connection found")
         return
 
-    query = "SELECT *" if state.filtered_columns is None else "SELECT " + state.filtered_columns
-    query = query + " FROM " + table
+    query = "SELECT * FROM " + table
     if state.query_conditions is not None:
         query = query + " WHERE " + state.query_conditions
     if state.order is not None:
-        order_column, order_orientation = state.order
-        query = query + " ORDER BY " + order_column + " " + order_orientation
+        ordering_column, order = state.order
+        query = query + " ORDER BY " + ordering_column + " " + order
     query = query + " LIMIT " + str(configs.results_limit)
 
     table_content = await run_in_executor(partial(state.sql_client.run_query, state.selected_database, query))
     if table_content is None:
         # Error
         state.query_conditions = None
-        state.filtered_columns = None
+        state.filtered_columns.clear()
         state.order = None
         return
 
@@ -35,4 +34,12 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
     state.selected_table = table
     state.result = (headers, rows)
     state.mode = Mode.TABLE_CONTENT_RESULT
+
+    if state.filtered_columns:
+        filtered_idx = \
+            set([header_idx for header_idx, header in enumerate(headers) if header in state.filtered_columns])
+        headers = [header for header in headers if header in state.filtered_columns]
+        rows = \
+            list(map(lambda row: [column for column_idx, column in enumerate(row) if column_idx in filtered_idx], rows))
+
     await show_result(configs, headers, rows)

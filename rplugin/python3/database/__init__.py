@@ -19,7 +19,8 @@ from .transitions.data_ops import (
     filter_columns,
     order,
     show_table_content,
-    delete_row, result_filter,
+    delete_row,
+    result_filter,
 )
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
@@ -163,12 +164,13 @@ class DatabasePlugin(object):
     def clear_filter_function(self, _: Sequence[Any]) -> None:
         self._state.filtered_tables = None
         self._state.query_conditions = None
-        self._state.filtered_columns = None
+        self._state.filtered_columns.clear()
+        log.info("[vim-database] All filters were cleared")
 
         if self._state.mode == Mode.TABLE:
             self._run(show_tables)
         elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
-            self._run(show_tables, self._state.selected_table)
+            self._run(select_table, self._state.selected_table)
 
     @function('VimDatabase_filter_columns')
     def filter_columns_function(self, _: Sequence[Any]) -> None:
@@ -187,8 +189,8 @@ class DatabasePlugin(object):
         if self._state.mode != Mode.TABLE_CONTENT_RESULT:
             return
 
-        if self._state.filtered_columns is not None:
-            self._state.filtered_columns = None
+        if self._state.filtered_columns:
+            self._state.filtered_columns.clear()
             self._run(show_table_content, self._state.selected_table)
 
     @function('VimDatabase_refresh')

@@ -54,7 +54,7 @@ async def show_table_info(configs: UserConfig, state: State, table: str) -> None
 
 async def select_table(configs: UserConfig, state: State) -> None:
     state.query_conditions = None
-    state.filtered_columns = None
+    state.filtered_columns.clear()
     state.order = None
     table_index = await async_call(partial(_get_table_index, state))
     if table_index is None:

@@ -45,9 +45,6 @@ async def delete_row(configs: UserConfig, state: State) -> None:
 async def copy(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
-    if state.filtered_columns is not None:
-        log.info("[vim-database] Can not copy row in filter column mode")
-        return
 
     result_index = await async_call(partial(get_current_row, state))
     if result_index is None:
@@ -63,9 +60,8 @@ async def copy(configs: UserConfig, state: State) -> None:
     for header_index, header in enumerate(result_headers):
         header_map[header] = header_index
 
-    unique_column_names = await run_in_executor(partial(state.sql_client.get_unique_columns,
-                                                        state.selected_database,
-                                                        state.selected_table))
+    unique_column_names = await run_in_executor(
+        partial(state.sql_client.get_unique_columns, state.selected_database, state.selected_table))
     if len(unique_column_names) == 0:
         log.info("[vim-database] No unique column found")
         return
@@ -81,11 +77,9 @@ async def copy(configs: UserConfig, state: State) -> None:
         else:
             return
 
-    copy_result = await run_in_executor(partial(state.sql_client.copy,
-                                                state.selected_database,
-                                                state.selected_table,
-                                                unique_columns,
-                                                new_unique_column_values))
+    copy_result = await run_in_executor(
+        partial(state.sql_client.copy, state.selected_database, state.selected_table, unique_columns,
+                new_unique_column_values))
     if copy_result:
         result_rows.append(copy_row)
         state.result = (result_headers, result_rows)
@@ -109,16 +103,13 @@ async def edit(configs: UserConfig, state: State) -> None:
         ans = await async_call(
             partial(
                 confirm, "UPDATE " + state.selected_table + " SET " + edit_column + " = " + new_value + " WHERE " +
-                         primary_key + " = " + primary_key_value))
+                primary_key + " = " + primary_key_value))
         if not ans:
             return
 
-        update_success = await run_in_executor(partial(state.sql_client.update,
-                                                       state.selected_database,
-                                                       state.selected_table,
-                                                       (edit_column, "\'" + new_value + "\'"),
-                                                       (primary_key, "\'" + primary_key_value + "\'")
-                                                       ))
+        update_success = await run_in_executor(
+            partial(state.sql_client.update, state.selected_database, state.selected_table,
+                    (edit_column, "\'" + new_value + "\'"), (primary_key, "\'" + primary_key_value + "\'")))
         if update_success:
             data_headers, data_rows = state.result
             data_rows[row][column] = new_value
@@ -130,15 +121,15 @@ async def filter_columns(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    def get_filtered_columns() -> Optional[str]:
-        columns = state.filtered_columns if state.filtered_columns is not None else ""
-        return get_input("Filter columns: ", columns)
-
-    filtered_columns = await async_call(get_filtered_columns)
+    filtered_columns = await async_call(partial(get_input, "Filter columns: ", ", ".join(state.filtered_columns)))
     filtered_columns = filtered_columns if filtered_columns is None else filtered_columns.strip()
     if filtered_columns:
-        state.filtered_columns = filtered_columns
-        await show_table_content(configs, state, state.selected_table)
+        state.filtered_columns.clear()
+        columns = filtered_columns.split(",")
+        for column in columns:
+            state.filtered_columns.add(column.strip())
+
+    await show_table_content(configs, state, state.selected_table)
 
 
 async def order(configs: UserConfig, state: State, orientation: str) -> None:
@@ -155,6 +146,7 @@ async def order(configs: UserConfig, state: State, orientation: str) -> None:
 
 
 async def result_filter(configs: UserConfig, state: State) -> None:
+
     def get_filter_condition() -> Optional[str]:
         condition = state.query_conditions if state.query_conditions is not None else ""
         return get_input("New condition: ", condition)
@@ -196,9 +188,8 @@ async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional
 
 
 async def _get_primary_key_value(state: State, row: int) -> Tuple[Optional[str], Optional[str]]:
-    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
-                                                state.selected_database,
-                                                state.selected_table))
+    primary_key = await run_in_executor(
+        partial(state.sql_client.get_primary_key, state.selected_database, state.selected_table))
     if primary_key is None:
         log.info("[vim-database] No primary key found for table " + state.selected_table)
         return None, None

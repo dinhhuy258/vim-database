@@ -8,7 +8,7 @@ from ..transitions.database_ops import show_databases
 from ..transitions.table_ops import (show_tables, show_table_info)
 from ..utils.log import log
 from ..utils.nvim import (
-    async_call, )
+    async_call,)
 from ..views.database_window import (
     close_database_window,
     resize,
