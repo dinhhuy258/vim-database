@@ -9,19 +9,16 @@ from .configs.config import load_config
 from .database import (
     copy,
     edit,
-    show_update_query,
-    show_copy_query,
-    show_insert_query,
     new_filter,
     filter_column,
     sort,
-    run_query,
     show_table_content,
     delete_result,
 )
 from .states.state import init_state, Mode
 from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
 from .transitions.database_ops import show_databases, select_database
+from .transitions.query_ops import run_query, show_update_query, show_copy_query, show_insert_query
 from .transitions.lsp_ops import lsp_config
 from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table, \
     show_tables

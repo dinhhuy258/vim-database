@@ -3,32 +3,25 @@ from typing import Optional, Tuple
 
 from .concurrents.executors import run_in_executor
 from .configs.config import UserConfig
-from .sql_clients.sql_client_factory import SqlClientFactory
 from .states.state import Mode, State
 from .transitions.shared.show_result import show_result
 from .transitions.shared.show_table_content import show_table_content
 from .transitions.table_ops import (table_filter)
+from .transitions.shared.get_row_index import get_row_index
 from .utils.log import log
 from .utils.nvim import (
     async_call,
     confirm,
     get_input,
-    render,
 )
 from .views.database_window import (
-    get_current_database_window_row,
     get_current_database_window_line,
     get_current_database_window_cursor,
-)
-from .views.query_window import (
-    open_query_window,
-    close_query_window,
-    get_query,
 )
 
 
 async def delete_result(configs: UserConfig, state: State) -> None:
-    result_index = await async_call(partial(_get_result_index, state))
+    result_index = await async_call(partial(get_row_index, state))
     if result_index is None:
         return
     result_headers, result_rows = state.result
@@ -66,19 +59,6 @@ async def delete_result(configs: UserConfig, state: State) -> None:
         await show_result(configs, result_headers, result_rows)
 
 
-def _get_result_index(state: State) -> Optional[int]:
-    row = get_current_database_window_row()
-    _, result_rows = state.result
-    result_size = len(result_rows)
-
-    # Minus 4 for header of the table
-    result_index = row - 4
-    if result_index < 0 or result_index >= result_size:
-        return None
-
-    return result_index
-
-
 def _get_result_row_and_column(state: State) -> Optional[Tuple[int, int]]:
     row, column = get_current_database_window_cursor()
     _, result_rows = state.result
@@ -112,99 +92,6 @@ async def _result_filter(configs: UserConfig, state: State) -> None:
         await show_table_content(configs, state, state.selected_table)
 
 
-async def show_insert_query(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.TABLE_CONTENT_RESULT:
-
-        insert_query = await run_in_executor(partial(state.sql_client.get_template_insert_query,
-                                                     state.selected_database,
-                                                     state.selected_table))
-        if insert_query is None:
-            return
-
-        query_window = await async_call(partial(open_query_window, configs))
-        await async_call(partial(render, query_window, insert_query))
-    elif state.mode == Mode.TABLE:
-        create_table_query = ["CREATE TABLE table_name (", "\t", ")"]
-        query_window = await async_call(partial(open_query_window, configs))
-        await async_call(partial(render, query_window, create_table_query))
-
-
-async def show_update_query(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
-        return
-    if state.filtered_columns is not None:
-        log.info("[vim-database] Can not show update query in filter column mode")
-        return
-    result_headers, result_rows = state.result
-    if len(result_headers) <= 1:
-        return
-
-    result_index = await async_call(partial(_get_result_index, state))
-    if result_index is None:
-        return
-    result_row = result_rows[result_index]
-
-    primary_key = await run_in_executor(partial(state.sql_client.get_primary_key,
-                                                state.selected_database,
-                                                state.selected_table))
-    if primary_key is None:
-        log.info("[vim-database] No primary key found for table " + state.selected_table)
-        return
-
-    primary_key_index = -1
-    for header_index, header in enumerate(result_headers):
-        if header == primary_key:
-            primary_key_index = header_index
-            break
-
-    update_query = ["UPDATE " + state.selected_table + " SET "]
-    num_columns = len(result_headers)
-    for i in range(num_columns):
-        column = result_headers[i]
-        column_value = result_row[i]
-        if column != primary_key:
-            update_query.append("\t" + column + " = \'" + column_value + "\',")
-    update_query[-1] = update_query[-1][:-1]
-    update_query.append("WHERE " + primary_key + " = \'" + result_row[primary_key_index] + "\'")
-    query_window = await async_call(partial(open_query_window, configs))
-    await async_call(partial(render, query_window, update_query))
-
-
-async def show_copy_query(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
-        return
-    if state.filtered_columns is not None:
-        log.info("[vim-database] Can not show copy query in filter column mode")
-        return
-
-    result_headers, result_rows = state.result
-    if len(result_headers) <= 1:
-        return
-
-    result_index = await async_call(partial(_get_result_index, state))
-    if result_index is None:
-        return
-    result_row = result_rows[result_index]
-
-    insert_query = ["INSERT INTO " + state.selected_table + " ("]
-    num_columns = len(result_headers)
-    for i in range(num_columns):
-        column_name = result_headers[i]
-        insert_query.append("\t" + column_name)
-        if i != num_columns - 1:
-            insert_query[-1] += ","
-
-    insert_query.append(") VALUES (")
-    for i in range(num_columns):
-        column_value = result_row[i]
-        insert_query.append("\t" + (column_value if column_value == 'NULL' else ("\'" + column_value + "\'")))
-        if i != num_columns - 1:
-            insert_query[-1] += ","
-    insert_query.append(")")
-
-    query_window = await async_call(partial(open_query_window, configs))
-    await async_call(partial(render, query_window, insert_query))
-
 
 async def copy(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
@@ -213,7 +100,7 @@ async def copy(configs: UserConfig, state: State) -> None:
         log.info("[vim-database] Can not copy row in filter column mode")
         return
 
-    result_index = await async_call(partial(_get_result_index, state))
+    result_index = await async_call(partial(get_row_index, state))
     if result_index is None:
         return
     result_headers, result_rows = state.result
@@ -346,32 +233,3 @@ async def sort(configs: UserConfig, state: State, orientation: str) -> None:
 
     await show_table_content(configs, state, state.selected_table)
 
-
-async def run_query(configs: UserConfig, state: State) -> None:
-    if not state.connections:
-        log.info("[vim-database] No connection found")
-        return
-
-    query = await async_call(get_query)
-    if query is None:
-        return
-
-    query_result = await run_in_executor(partial(state.sql_client.run_query, state.selected_database, query))
-    if query_result is None:
-        return
-
-    if len(query_result) < 2:
-        await async_call(close_query_window)
-        if query.lower().startswith("select "):
-            headers = ["Empty"]
-        else:
-            headers = ["Query executed successfully"]
-
-        await async_call(close_query_window)
-        await show_result(configs, headers, [])
-        return
-    state.selected_table = None
-    state.result = None
-    state.mode = Mode.QUERY_RESULT
-    await async_call(close_query_window)
-    await show_result(configs, query_result[0], query_result[1:])

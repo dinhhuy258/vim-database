@@ -6,7 +6,6 @@ from .shared.show_result import show_result
 from .shared.show_table_content import show_table_content
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
-from ..sql_clients.sql_client_factory import SqlClientFactory
 from ..states.state import Mode, State
 from ..utils.ascii_table import ascii_table
 from ..utils.log import log
