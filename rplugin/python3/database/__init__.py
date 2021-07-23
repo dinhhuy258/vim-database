@@ -16,10 +16,10 @@ from .transitions.table_ops import list_tables_fzf, show_table_info, select_tabl
 from .transitions.row_ops import (
     copy,
     edit,
-    filter_column,
-    sort,
+    filter_columns,
+    order,
     show_table_content,
-    delete_result,
+    delete_row,
 )
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
@@ -118,7 +118,7 @@ class DatabasePlugin(object):
         elif self._state.mode == Mode.TABLE and self._state.tables:
             self._run(delete_table)
         elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
-            self._run(delete_result)
+            self._run(delete_row)
 
     @function('VimDatabase_new')
     def new_function(self, _: Sequence[Any]) -> None:
@@ -170,17 +170,17 @@ class DatabasePlugin(object):
         elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
             self._run(show_tables, self._state.selected_table)
 
-    @function('VimDatabase_filter_column')
-    def filter_column_function(self, _: Sequence[Any]) -> None:
-        self._run(filter_column)
+    @function('VimDatabase_filter_columns')
+    def filter_columns_function(self, _: Sequence[Any]) -> None:
+        self._run(filter_columns)
 
-    @function('VimDatabase_sort')
-    def sort_function(self, _: Sequence[Any]) -> None:
-        self._run(sort, "ASC")
+    @function('VimDatabase_order')
+    def order_function(self, _: Sequence[Any]) -> None:
+        self._run(order, "ASC")
 
-    @function('VimDatabase_sort_reverse')
-    def sort_reverse_function(self, _: Sequence[Any]) -> None:
-        self._run(sort, "DESC")
+    @function('VimDatabase_order_desc')
+    def order_desc_function(self, _: Sequence[Any]) -> None:
+        self._run(order, "DESC")
 
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, _: Sequence[Any]) -> None:

@@ -19,7 +19,7 @@ from ..views.database_window import (
 )
 
 
-async def delete_result(configs: UserConfig, state: State) -> None:
+async def delete_row(configs: UserConfig, state: State) -> None:
     result_index = await async_call(partial(get_current_row, state))
     if result_index is None:
         return
@@ -126,22 +126,22 @@ async def edit(configs: UserConfig, state: State) -> None:
             await show_result(configs, data_headers, data_rows)
 
 
-async def filter_column(configs: UserConfig, state: State) -> None:
+async def filter_columns(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    def get_filter_column() -> Optional[str]:
-        filter_column = state.filtered_columns if state.filtered_columns is not None else ""
-        return get_input("New filter column: ", filter_column)
+    def get_filtered_columns() -> Optional[str]:
+        columns = state.filtered_columns if state.filtered_columns is not None else ""
+        return get_input("Filter columns: ", columns)
 
-    filter_column = await async_call(get_filter_column)
-    filter_column = filter_column if filter_column is None else filter_column.strip()
-    if filter_column:
-        state.filtered_columns = filter_column
+    filtered_columns = await async_call(get_filtered_columns)
+    filtered_columns = filtered_columns if filtered_columns is None else filtered_columns.strip()
+    if filtered_columns:
+        state.filtered_columns = filtered_columns
         await show_table_content(configs, state, state.selected_table)
 
 
-async def sort(configs: UserConfig, state: State, orientation: str) -> None:
+async def order(configs: UserConfig, state: State, orientation: str) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
