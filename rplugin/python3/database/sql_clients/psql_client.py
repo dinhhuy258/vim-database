@@ -1,5 +1,6 @@
 import os
 from typing import Optional, Tuple
+
 from .sql_client import SqlClient, CommandResult
 from ..storages.connection import Connection
 from ..utils.log import log
@@ -10,7 +11,7 @@ class PostgreSqlClient(SqlClient):
     def __init__(self, connection: Connection):
         SqlClient.__init__(self, connection)
 
-    def _run_query(self, query: str, options: list = list()) -> CommandResult:
+    def _run_query(self, query: str, options: list = list) -> CommandResult:
         return self.run_command([
             "psql",
             "--host=" + self.connection.host,
@@ -31,7 +32,9 @@ class PostgreSqlClient(SqlClient):
 
     def get_tables(self, database: str) -> list:
         result = self._run_query(
-            "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != \'pg_catalog\' AND schemaname != \'information_schema\'",
+            "SELECT tablename "
+            "FROM pg_catalog.pg_tables "
+            "WHERE schemaname != \'pg_catalog\' AND schemaname != \'information_schema\'",
             ["--tuples-only", "--dbname=" + database])
 
         if result.error:
@@ -47,8 +50,10 @@ class PostgreSqlClient(SqlClient):
 
     def describe_table(self, database: str, table: str) -> Optional[list]:
         result = self._run_query(
-            "SELECT column_name, column_default, is_nullable, data_type FROM information_schema.columns WHERE table_name = \'"
-            + table + "\'", ["--tuples-only", "--dbname=" + database])
+            "SELECT column_name, column_default, is_nullable, data_type "
+            "FROM information_schema.columns "
+            "WHERE table_name = \'" + table + "\'", ["--tuples-only", "--dbname=" + database])
+
         if result.error:
             log.info("[vim-database] " + ". ".join(result.data.splitlines()))
             return None
@@ -107,7 +112,10 @@ class PostgreSqlClient(SqlClient):
         return True
 
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
-        get_primary_key_query = "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = \'" + table + "\'::regclass AND i.indisprimary"
+        get_primary_key_query = "SELECT a.attname " \
+                                "FROM pg_index i " \
+                                "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) " \
+                                "WHERE i.indrelid = \'" + table + "\'::regclass AND i.indisprimary"
         result = self._run_query(get_primary_key_query, ["--tuples-only", "--dbname=" + database])
         if result.error:
             log.info("[vim-database] " + ". ".join(result.data.splitlines()))
@@ -116,13 +124,16 @@ class PostgreSqlClient(SqlClient):
         return result.data.strip()
 
     def get_unique_columns(self, database: str, table: str) -> Optional[list]:
-        get_unique_keys_query = "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = \'" + table + "\'::regclass AND i.indisunique"
+        get_unique_keys_query = "SELECT a.attname " \
+                                "FROM pg_index i " \
+                                "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) " \
+                                "WHERE i.indrelid = \'" + table + "\'::regclass AND i.indisunique"
         result = self._run_query(get_unique_keys_query, ["--tuples-only", "--dbname=" + database])
         if result.error:
             log.info("[vim-database] " + ". ".join(result.data.splitlines()))
             return None
 
-        return list(map(lambda table: table.strip(), result.data.splitlines()))
+        return list(map(lambda column: column.strip(), result.data.splitlines()))
 
     def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
         result = self._run_query(
@@ -138,13 +149,12 @@ class PostgreSqlClient(SqlClient):
             log.info("[vim-database] No table information found")
             return None
 
-        columns = list(map(lambda line: [column.strip() for column in line.split("|")], lines))
+        columns = list(map(lambda line: [col.strip() for col in line.split("|")], lines))
 
         name_index = 0
         default_value_index = 1
         is_nullable_index = 2
-        insert_query = []
-        insert_query.append("INSERT INTO " + table + " (")
+        insert_query = ["INSERT INTO " + table + " ("]
         columns_len = len(columns)
         for index, column in enumerate(columns):
             insert_query.append("\t" + column[name_index])

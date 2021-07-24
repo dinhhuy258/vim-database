@@ -1,4 +1,5 @@
 from typing import Optional, Tuple
+
 from .sql_client import SqlClient, CommandResult
 from ..storages.connection import Connection
 from ..utils.log import log
@@ -9,7 +10,7 @@ class MySqlClient(SqlClient):
     def __init__(self, connection: Connection):
         SqlClient.__init__(self, connection)
 
-    def _run_query(self, query: str, options: list = list()) -> CommandResult:
+    def _run_query(self, query: str, options: list = list) -> CommandResult:
         return self.run_command([
             "mysql",
             "--unbuffered",
@@ -100,7 +101,8 @@ class MySqlClient(SqlClient):
             else:
                 condition_query += unique_column + " = + \'" + unique_column_value + "\'"
 
-        create_temporary_query = "CREATE TEMPORARY TABLE tmptable_1 SELECT * FROM " + table + " WHERE " + condition_query + ";"
+        create_temporary_query = \
+            "CREATE TEMPORARY TABLE tmptable_1 SELECT * FROM " + table + " WHERE " + condition_query + ";"
         update_primary_key_temporary_query = "UPDATE tmptable_1 SET " + assign_query + ";"
         insert_query = "INSERT INTO " + table + " SELECT * FROM tmptable_1;"
         delete_temporary_query = "DROP TEMPORARY TABLE IF EXISTS tmptable_1;"
@@ -125,7 +127,12 @@ class MySqlClient(SqlClient):
         return True
 
     def get_primary_key(self, database: str, table: str) -> Optional[str]:
-        get_primary_key_query = "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = \'" + table + "\'  AND CONSTRAINT_NAME = 'PRIMARY' AND CONSTRAINT_SCHEMA=\'" + database + "\'"
+        get_primary_key_query = \
+            "SELECT COLUMN_NAME " \
+            "FROM information_schema.KEY_COLUMN_USAGE " \
+            "WHERE TABLE_NAME = \'" + table + "\'  " \
+                                              "AND CONSTRAINT_NAME = 'PRIMARY' " \
+                                              "AND CONSTRAINT_SCHEMA=\'" + database + "\'"
         result = self._run_query(get_primary_key_query, ["--skip-column-names"])
         if result.error:
             log.info("[vim-database] " + result.data)
@@ -134,7 +141,10 @@ class MySqlClient(SqlClient):
         return result.data
 
     def get_unique_columns(self, database: str, table: str) -> Optional[list]:
-        get_unique_keys_query = "SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = \'" + database + "\' AND TABLE_NAME = \'" + table + "\' AND NON_UNIQUE = 0"
+        get_unique_keys_query = \
+            "SELECT COLUMN_NAME " \
+            "FROM information_schema.STATISTICS " \
+            "WHERE TABLE_SCHEMA = \'" + database + "\' AND TABLE_NAME = \'" + table + "\' AND NON_UNIQUE = 0"
         result = self._run_query(get_unique_keys_query, ["--skip-column-names"])
         if result.error:
             log.info("[vim-database] " + result.data)
@@ -143,7 +153,10 @@ class MySqlClient(SqlClient):
         return result.data.splitlines()
 
     def get_template_insert_query(self, database: str, table: str) -> Optional[list]:
-        get_columns_query = "SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_NAME = \'" + table + "\' AND TABLE_SCHEMA=\'" + database + "\'"
+        get_columns_query = \
+            "SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE " \
+            "FROM information_schema.COLUMNS " \
+            "WHERE TABLE_NAME = \'" + table + "\' AND TABLE_SCHEMA=\'" + database + "\'"
         result = self._run_query(get_columns_query, ["--skip-column-names"])
         if result.error:
             log.info("[vim-database] " + result.data)
@@ -151,8 +164,7 @@ class MySqlClient(SqlClient):
 
         lines = result.data.splitlines()
         columns = list(map(lambda line: line.split("\t"), lines))
-        insert_query = []
-        insert_query.append("INSERT INTO " + table + " (")
+        insert_query = ["INSERT INTO " + table + " ("]
         columns_len = len(columns)
         for index, column in enumerate(columns):
             insert_query.append("\t" + column[0])

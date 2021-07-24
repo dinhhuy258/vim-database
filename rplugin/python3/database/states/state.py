@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
 
-from ..sql_clients.sql_client_factory import SqlClientFactory
-from ..sql_clients.sql_client import SqlClient
 from ..concurrents.executors import run_in_executor
+from ..sql_clients.sql_client import SqlClient
+from ..sql_clients.sql_client_factory import SqlClientFactory
 from ..storages.connection import (
     Connection,
     get_connections,

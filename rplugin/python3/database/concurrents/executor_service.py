@@ -1,6 +1,6 @@
+from concurrent.futures import Future
 from queue import SimpleQueue
 from threading import Thread
-from concurrent.futures import Future
 from typing import Any, Callable, TypeVar
 
 T = TypeVar("T")

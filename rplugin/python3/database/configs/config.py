@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import Dict
 from functools import partial
+from typing import Dict
+
 from ..utils.nvim import get_global_var, async_call
 
 _DEFAULT_DATABASE_MAPPINGS = {
