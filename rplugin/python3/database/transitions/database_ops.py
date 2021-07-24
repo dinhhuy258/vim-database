@@ -34,14 +34,11 @@ async def show_databases(configs: UserConfig, state: State) -> None:
 
 
 async def select_database(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.DATABASE or len(state.databases) == 0:
+    database_idx = await async_call(_get_database_index)
+    if database_idx is None:
         return
 
-    database_index = await async_call(_get_database_index)
-    if database_index is None:
-        return
-
-    state.selected_database = state.databases[database_index]
+    state.selected_database = state.databases[database_idx]
     state.sql_client = SqlClientFactory.create(state.selected_connection)
 
     # Update databases table

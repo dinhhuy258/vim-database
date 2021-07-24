@@ -1,14 +1,14 @@
 from functools import partial
 from typing import Optional, Tuple
 
-from ..sql_clients.sql_client_factory import SqlClientFactory
 from ..concurrents.executors import run_in_executor
-from ..storages.connection import (Connection, ConnectionType, store_connection, remove_connection)
-from ..utils.log import log
 from ..configs.config import UserConfig
+from ..sql_clients.sql_client_factory import SqlClientFactory
 from ..states.state import Mode, State
+from ..storages.connection import (Connection, ConnectionType, store_connection, remove_connection)
 from ..utils.ascii_table import ascii_table
 from ..utils.files import is_file_exists
+from ..utils.log import log
 from ..utils.nvim import (
     async_call,
     confirm,
@@ -16,7 +16,7 @@ from ..utils.nvim import (
     set_cursor,
     render,
 )
-from ..views.database_window import (open_database_window, get_current_database_window_row, is_database_window_open)
+from ..views.database_window import (open_database_window, get_current_database_window_row)
 
 
 async def new_connection(settings: UserConfig, state: State) -> None:
@@ -32,9 +32,7 @@ async def new_connection(settings: UserConfig, state: State) -> None:
             state.sql_client = SqlClientFactory.create(state.selected_connection)
 
         # Refresh connections table
-        is_window_open = await async_call(is_database_window_open)
-        if is_window_open and state.mode == Mode.CONNECTION:
-            await show_connections(settings, state)
+        await show_connections(settings, state)
 
         log.info('[vim-database] Connection created')
 
@@ -69,6 +67,39 @@ async def select_connection(settings: UserConfig, state: State) -> None:
     await async_call(partial(set_cursor, window, (selected_idx + 4, 0)))
 
 
+async def edit_connection(configs: UserConfig, state: State) -> None:
+    connection_idx = await async_call(partial(_get_connection_idx, state))
+    if connection_idx is None:
+        return
+
+    old_connection = state.connections[connection_idx]
+    connection: Optional[Connection] = None
+    if old_connection.connection_type is ConnectionType.SQLITE:
+        connection = await async_call(partial(_new_sqlite_connection, old_connection))
+    else:
+        connection = await async_call(
+            partial(_new_mysql_or_postgresql_connection, old_connection.connection_type, old_connection))
+
+    if connection is None:
+        return
+
+    # Delete old connection
+    await run_in_executor(partial(remove_connection, old_connection))
+    del state.connections[connection_idx]
+
+    # Store the new connection
+    await run_in_executor(partial(store_connection, connection))
+    state.connections.append(connection)
+
+    if old_connection.name == state.selected_connection.name:
+        state.load_default_connection()
+
+    # Refresh connections table
+    await show_connections(configs, state)
+
+    log.info('[vim-database] Connection updated')
+
+
 async def delete_connection(settings: UserConfig, state: State) -> None:
     connection_idx = await async_call(partial(_get_connection_idx, state))
     if connection_idx is None:
@@ -88,6 +119,8 @@ async def delete_connection(settings: UserConfig, state: State) -> None:
 
     # Update connections table
     await show_connections(settings, state)
+
+    log.info('[vim-database] Connection deleted')
 
 
 def _get_connections_from_state(state: State) -> Tuple[list, list, int]:
@@ -118,11 +151,11 @@ def _get_connection_idx(state: State) -> Optional[int]:
     return connection_idx
 
 
-def _new_sqlite_connection() -> Optional[Connection]:
-    name = get_input("Name: ")
+def _new_sqlite_connection(connection: Optional[Connection] = None) -> Optional[Connection]:
+    name = get_input("Name: ", connection.name if connection else "")
     if not name:
         return None
-    file = get_input("File: ")
+    file = get_input("File: ", connection.database if connection else "")
     if not file:
         return None
     if not is_file_exists(file):
@@ -138,23 +171,24 @@ def _new_sqlite_connection() -> Optional[Connection]:
                       database=file)
 
 
-def _new_mysql_or_postgresql_connection(connection_type: ConnectionType) -> Optional[Connection]:
-    name = get_input("Name: ")
+def _new_mysql_or_postgresql_connection(connection_type: ConnectionType,
+                                        connection: Optional[Connection] = None) -> Optional[Connection]:
+    name = get_input("Name: ", connection.name if connection else "")
     if not name:
         return None
-    host = get_input("Host: ")
+    host = get_input("Host: ", connection.host if connection else "")
     if not host:
         return None
-    port = get_input("Port: ")
+    port = get_input("Port: ", connection.port if connection else "")
     if not port:
         return None
-    username = get_input("Username: ")
+    username = get_input("Username: ", connection.username if connection else "")
     if not username:
         return None
-    password = get_input("Password: ")
+    password = get_input("Password: ", connection.password if connection else "")
     if not password:
         return None
-    database = get_input("Database: ")
+    database = get_input("Database: ", connection.database if connection else "")
     if not database:
         return None
 

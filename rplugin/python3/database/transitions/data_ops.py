@@ -43,7 +43,7 @@ async def delete_row(configs: UserConfig, state: State) -> None:
         await show_ascii_table(configs, headers, rows)
 
 
-async def copy(configs: UserConfig, state: State) -> None:
+async def copy_row(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.QUERY or state.user_query:
         return
 
@@ -52,7 +52,7 @@ async def copy(configs: UserConfig, state: State) -> None:
         return
 
     headers, rows = state.table_data
-    copy_row = rows[row_idx][:]
+    row = rows[row_idx][:]
 
     ans = await async_call(partial(confirm, "Do you want to copy this row?"))
     if not ans:
@@ -73,9 +73,9 @@ async def copy(configs: UserConfig, state: State) -> None:
     for unique_column in unique_column_names:
         new_unique_column_value = await async_call(partial(get_input, "New unique value " + unique_column + ": "))
         if new_unique_column_value:
-            unique_columns.append((unique_column, copy_row[header_map[unique_column]]))
+            unique_columns.append((unique_column, row[header_map[unique_column]]))
             new_unique_column_values.append(new_unique_column_value)
-            copy_row[header_map[unique_column]] = new_unique_column_value
+            row[header_map[unique_column]] = new_unique_column_value
         else:
             return
 
@@ -83,15 +83,12 @@ async def copy(configs: UserConfig, state: State) -> None:
         partial(state.sql_client.copy, state.selected_database, state.selected_table, unique_columns,
                 new_unique_column_values))
     if copy_result:
-        rows.append(copy_row)
+        rows.append(row)
         state.table_data = (headers, rows)
         await show_ascii_table(configs, headers, rows)
 
 
-async def edit(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.QUERY or state.user_query:
-        return
-
+async def edit_row(configs: UserConfig, state: State) -> None:
     edit_column, edit_value, row_idx, column_idx = await _get_current_cell_value(state)
     if edit_column is None:
         return
@@ -187,4 +184,3 @@ async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional
 
     data_headers, data_rows = state.table_data
     return data_headers[column], data_rows[row][column], row, column
-

@@ -16,7 +16,9 @@ from ..utils.nvim import (
     get_lines,
     get_window_width,
     set_window_width,
-    WindowLayout, get_window_height, set_window_height,
+    WindowLayout,
+    get_window_height,
+    set_window_height,
 )
 
 _VIM_DATABASE_FILE_TYPE = 'VimDatabase'

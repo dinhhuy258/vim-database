@@ -7,10 +7,11 @@ from pynvim import Nvim, plugin, command, function
 from .concurrents.executor_service import ExecutorService
 from .configs.config import load_config
 from .states.state import init_state, Mode
-from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
+from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection, \
+    edit_connection
 from .transitions.data_ops import (
-    copy,
-    edit,
+    copy_row,
+    edit_row,
     filter_columns,
     order,
     show_table_data,
@@ -128,11 +129,14 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_copy')
     def copy_function(self, _: Sequence[Any]) -> None:
-        self._run(copy)
+        self._run(copy_row)
 
     @function('VimDatabase_edit')
     def edit_function(self, _: Sequence[Any]) -> None:
-        self._run(edit)
+        if self._state.mode == Mode.CONNECTION:
+            self._run(edit_connection)
+        elif self._state.mode == Mode.QUERY and not self._state.user_query:
+            self._run(edit_row)
 
     @function('VimDatabase_show_update_query')
     def show_update_query_function(self, _: Sequence[Any]) -> None:
