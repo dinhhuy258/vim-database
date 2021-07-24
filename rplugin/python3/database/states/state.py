@@ -35,6 +35,7 @@ class State:
     query_conditions: Optional[str]
     order: Optional[Tuple[str, str]]
     user_query: bool
+    current_page: int
 
     def load_default_connection(self):
         if self.connections:
@@ -61,7 +62,8 @@ async def init_state() -> State:
                   filtered_columns=set(),
                   query_conditions=None,
                   order=None,
-                  user_query=False)
+                  user_query=False,
+                  current_page=1)
 
     def _get_connections() -> list:
         return list(get_connections())

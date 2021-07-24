@@ -23,6 +23,8 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "order_desc": ["O"],
     "filter": ["f"],
     "refresh": ["r"],
+    "next": ["<Right>"],
+    "previous": ["<Left>"],
     "filter_columns": ["a"],
     "clear_filter_column": ["A"],
     "clear_filter": ["F"],

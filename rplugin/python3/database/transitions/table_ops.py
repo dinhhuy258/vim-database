@@ -56,9 +56,12 @@ async def select_table(configs: UserConfig, state: State) -> None:
     state.query_conditions = None
     state.filtered_columns.clear()
     state.order = None
+    state.current_page = 1
+
     table_idx = await async_call(partial(get_table_idx, state))
     if table_idx is None:
         return
+
     table = state.tables[table_idx]
 
     await show_table_data(configs, state, table)

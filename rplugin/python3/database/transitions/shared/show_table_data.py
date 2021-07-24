@@ -14,11 +14,12 @@ async def show_table_data(configs: UserConfig, state: State, table: str) -> None
 
     query = "SELECT * FROM " + table
     if state.query_conditions is not None:
-        query = query + " WHERE " + state.query_conditions
+        query += " WHERE " + state.query_conditions
     if state.order is not None:
         ordering_column, order = state.order
-        query = query + " ORDER BY " + ordering_column + " " + order
-    query = query + " LIMIT " + str(configs.rows_limit)
+        query += " ORDER BY " + ordering_column + " " + order
+    query += " LIMIT " + str(configs.rows_limit)
+    query += " OFFSET " + str(configs.rows_limit * (state.current_page - 1))
 
     table_content = await run_in_executor(partial(state.sql_client.run_query, state.selected_database, query))
     if table_content is None:

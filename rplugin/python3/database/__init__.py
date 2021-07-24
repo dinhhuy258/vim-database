@@ -17,6 +17,8 @@ from .transitions.data_ops import (
     show_table_data,
     delete_row,
     row_filter,
+    next_page,
+    previous_page,
 )
 from .transitions.database_ops import show_databases, select_database
 from .transitions.lsp_ops import lsp_config
@@ -186,6 +188,16 @@ class DatabasePlugin(object):
     @function('VimDatabase_order_desc')
     def order_desc_function(self, _: Sequence[Any]) -> None:
         self._run(order, "DESC")
+
+    @function('VimDatabase_next')
+    def next_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.QUERY and not self._state.user_query:
+            self._run(next_page)
+
+    @function('VimDatabase_previous')
+    def previous_function(self, _: Sequence[Any]) -> None:
+        if self._state.mode == Mode.QUERY and not self._state.user_query:
+            self._run(previous_page)
 
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, _: Sequence[Any]) -> None:

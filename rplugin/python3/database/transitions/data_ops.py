@@ -157,6 +157,23 @@ async def row_filter(configs: UserConfig, state: State) -> None:
         await show_table_data(configs, state, state.selected_table)
 
 
+async def next_page(configs: UserConfig, state: State) -> None:
+    state.current_page += 1
+    await show_table_data(configs, state, state.selected_table)
+
+    if not state.table_data[1]:
+        state.current_page -= 1
+        await show_table_data(configs, state, state.selected_table)
+
+
+async def previous_page(configs: UserConfig, state: State) -> None:
+    if state.current_page <= 1:
+        return
+
+    state.current_page -= 1
+    await show_table_data(configs, state, state.selected_table)
+
+
 def _get_current_row_and_column(state: State) -> Tuple[Optional[int], Optional[int]]:
     row_cursor, column_cursor = get_current_database_window_cursor()
 
