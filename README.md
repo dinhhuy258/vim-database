@@ -139,10 +139,11 @@ Navigate between connection, database, table mode:
 - Clear filter (press `F`)
 - Select table (press `s`)
 - Delete table (press `dd`)
+- Describe table (press `.`)
 
 ![](https://user-images.githubusercontent.com/17776979/126873227-156b4675-a757-438a-be9d-445bf2e76933.gif)
 
-### Query mode
+### Data mode
 
 - Sort asc (press `o`)
 - Sort desc (press `O`)
@@ -156,10 +157,11 @@ Navigate between connection, database, table mode:
 - Show create row query (press `C`)
 - Show update row query (press `M`)
 - Show update row query (press `P`)
+- Describe table (press `.`)
 
 ![](https://user-images.githubusercontent.com/17776979/126873221-ecc5081e-ecf2-4ca5-be0f-2b9c1658495a.gif)
 
-### Execute query mode
+### Query mode
 
 - Execute the query (press `r`)
 
