@@ -106,3 +106,49 @@ Default: `left`
 Set size for database window.
 
 Default: `100`
+
+
+## Features
+
+### Connection mode
+
+- New connection (press `c`)
+- Delete connection (press `dd`)
+- Select connection (press `s`)
+- Modify connection (press `m`)
+
+![](https://user-images.githubusercontent.com/17776979/126873230-3040adc1-a447-48c8-8d08-ee48c1b7f6c7.gif)
+
+![](https://user-images.githubusercontent.com/17776979/126873229-b11b7b64-21d8-4d6b-baa0-0715fea4df6e.gif)
+
+### Database mode
+
+- Select database (press `s`)
+
+![](https://user-images.githubusercontent.com/17776979/126873228-c7557467-a8c2-48bf-854e-a1b4f7bc6900.gif)
+
+### Table mode
+
+- Filter table (press `f`)
+- Clear filter (press `F`)
+- Select table (press `s`)
+- Delete table (press `dd`)
+
+![](https://user-images.githubusercontent.com/17776979/126873227-156b4675-a757-438a-be9d-445bf2e76933.gif)
+
+### Query mode
+
+- Sort asc (press `o`)
+- Sort desc (press `O`)
+- Filter (press `f`)
+- Clear filter (press `F`)
+- Filter columns (press `a`)
+- Clear filter columns (press `A`)
+- Delete row (press `dd`)
+- Modify row at column (press `m`)
+- Copy row (press `p`)
+- Show create row query (press `C`)
+- Show update row query (press `M`)
+- Show update row query (press `P`)
+
+![](https://user-images.githubusercontent.com/17776979/126873221-ecc5081e-ecf2-4ca5-be0f-2b9c1658495a.gif)
