@@ -18,7 +18,7 @@ async def show_table_data(configs: UserConfig, state: State, table: str) -> None
     if state.order is not None:
         ordering_column, order = state.order
         query = query + " ORDER BY " + ordering_column + " " + order
-    query = query + " LIMIT " + str(configs.results_limit)
+    query = query + " LIMIT " + str(configs.rows_limit)
 
     table_content = await run_in_executor(partial(state.sql_client.run_query, state.selected_database, query))
     if table_content is None:

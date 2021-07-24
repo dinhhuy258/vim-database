@@ -78,7 +78,7 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         return
 
     row = rows[row_idx]
-    primary_key, primary_key_value = await get_primary_key_value(state, row)
+    primary_key, primary_key_value = await get_primary_key_value(state, row_idx)
     if primary_key is None:
         return
 

@@ -15,7 +15,7 @@ async def get_primary_key_value(state: State, row: int) -> Tuple[Optional[str], 
 
     headers, rows = state.table_data
 
-    for header_idx, header in headers:
+    for header_idx, header in enumerate(headers):
         if header == primary_key:
             return primary_key, rows[row][header_idx]
 

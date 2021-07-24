@@ -16,7 +16,7 @@ from ..utils.nvim import (
     get_lines,
     get_window_width,
     set_window_width,
-    WindowLayout,
+    WindowLayout, get_window_height, set_window_height,
 )
 
 _VIM_DATABASE_FILE_TYPE = 'VimDatabase'
@@ -67,12 +67,22 @@ def is_database_window_open() -> bool:
     return _find_database_window_in_tab() is not None
 
 
-def resize(direction: int) -> None:
+def resize_width(direction: int) -> None:
     window = _find_database_window_in_tab()
     if window is None:
         return
+
     width = get_window_width(window)
     set_window_width(window, width + direction)
+
+
+def resize_height(direction: int) -> None:
+    window = _find_database_window_in_tab()
+    if window is None:
+        return
+
+    width = get_window_height(window)
+    set_window_height(window, width + direction)
 
 
 def _find_database_window_in_tab() -> Optional[Window]:

@@ -10,7 +10,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "show_tables": ["<Leader>t"],
     "show_query": ["<Leader>r"],
     "quit": ["q"],
-    "delete": ["d"],
+    "delete": ["dd"],
     "new": ["c"],
     "show_insert_query": ["C"],
     "copy": ["p"],
@@ -19,8 +19,8 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "show_update_query": ["M"],
     "info": ["."],
     "select": ["x"],
-    "order": ["s"],
-    "order_desc": ["S"],
+    "order": ["o"],
+    "order_desc": ["O"],
     "filter": ["f"],
     "refresh": ["r"],
     "filter_columns": ["a"],
@@ -38,7 +38,7 @@ _DEFAULT_DATABASE_QUERY_MAPPINGS = {
 
 @dataclass(frozen=True)
 class UserConfig:
-    results_limit: int
+    rows_limit: int
     window_layout: str
     window_size: int
     mappings: Dict
@@ -55,11 +55,11 @@ async def load_config() -> UserConfig:
         f"VimDatabaseQuery_{function}": query_mappings for function, query_mappings in query_mappings.items()
     }
 
-    results_limit = await async_call(partial(get_global_var, "vim_database_results_limit", 50))
+    rows_limit = await async_call(partial(get_global_var, "vim_database_rows_limit", 50))
     window_layout = await async_call(partial(get_global_var, "vim_database_window_layout", "left"))
     window_size = await async_call(partial(get_global_var, "vim_database_window_size", 100))
 
-    return UserConfig(results_limit=results_limit,
+    return UserConfig(rows_limit=rows_limit,
                       window_layout=window_layout,
                       window_size=window_size,
                       mappings=mappings,

@@ -164,7 +164,6 @@ class DatabasePlugin(object):
     def clear_filter_function(self, _: Sequence[Any]) -> None:
         self._state.filtered_tables = None
         self._state.query_conditions = None
-        self._state.filtered_columns.clear()
         log.info("[vim-database] All filters were cleared")
 
         if self._state.mode == Mode.TABLE:

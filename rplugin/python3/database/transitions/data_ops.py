@@ -92,13 +92,13 @@ async def edit(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.QUERY or state.user_query:
         return
 
-    edit_column, edit_value, row, column = await _get_current_cell_value(state)
+    edit_column, edit_value, row_idx, column_idx = await _get_current_cell_value(state)
     if edit_column is None:
         return
 
     new_value = await async_call(partial(get_input, "Edit column " + edit_column + ": ", edit_value))
     if new_value and new_value != edit_value:
-        primary_key, primary_key_value = await get_primary_key_value(state, row)
+        primary_key, primary_key_value = await get_primary_key_value(state, row_idx)
         if primary_key is None:
             return
 
@@ -114,7 +114,7 @@ async def edit(configs: UserConfig, state: State) -> None:
                     (edit_column, "\'" + new_value + "\'"), (primary_key, "\'" + primary_key_value + "\'")))
         if update_success:
             data_headers, data_rows = state.table_data
-            data_rows[row][column] = new_value
+            data_rows[row_idx][column_idx] = new_value
             state.table_data = (data_headers, data_rows)
             await show_ascii_table(configs, data_headers, data_rows)
 
@@ -187,3 +187,4 @@ async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional
 
     data_headers, data_rows = state.table_data
     return data_headers[column], data_rows[row][column], row, column
+

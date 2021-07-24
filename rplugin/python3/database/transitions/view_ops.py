@@ -10,7 +10,8 @@ from ..utils.log import log
 from ..utils.nvim import async_call
 from ..views.database_window import (
     close_database_window,
-    resize,
+    resize_width,
+    resize_height,
     is_database_window_open,
 )
 from ..views.query_window import (
@@ -43,8 +44,11 @@ async def close(_: UserConfig, __: State) -> None:
     await async_call(close_database_window)
 
 
-async def resize_database(_: UserConfig, __: State, direction: int) -> None:
-    await async_call(partial(resize, direction))
+async def resize_database(config: UserConfig, _: State, direction: int) -> None:
+    if config.window_layout == "left" or config.window_layout == "right":
+        await async_call(partial(resize_width, direction))
+    else:
+        await async_call(partial(resize_height, direction))
 
 
 async def show_query(configs: UserConfig, state: State) -> None:
