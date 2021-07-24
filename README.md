@@ -166,6 +166,8 @@ Navigate between connection, database, table mode:
 - Show update row query (press `M`)
 - Show update row query (press `P`)
 - Describe table (press `.`)
+- Next page (press `right-arrow`)
+- Previous page (press `left-arrow`)
 
 ![](https://user-images.githubusercontent.com/17776979/126873221-ecc5081e-ecf2-4ca5-be0f-2b9c1658495a.gif)
 
