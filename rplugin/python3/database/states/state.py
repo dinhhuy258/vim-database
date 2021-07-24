@@ -16,9 +16,7 @@ class Mode(Enum):
     DATABASE = 2
     TABLE = 3
     QUERY = 4
-    INFO_RESULT = 5
-    TABLE_CONTENT_RESULT = 6
-    QUERY_RESULT = 7
+    TABLE_INFO = 5
 
 
 @dataclass(frozen=False)
@@ -36,7 +34,7 @@ class State:
     filtered_columns: set[str]
     query_conditions: Optional[str]
     order: Optional[Tuple[str, str]]
-    current_query: Optional[str]
+    user_query: bool
 
     def load_default_connection(self):
         if self.connections:
@@ -63,7 +61,7 @@ async def init_state() -> State:
                   filtered_columns=set(),
                   query_conditions=None,
                   order=None,
-                  current_query=None)
+                  user_query=False)
 
     def _get_connections() -> list:
         return list(get_connections())

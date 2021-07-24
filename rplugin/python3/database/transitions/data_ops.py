@@ -43,7 +43,7 @@ async def delete_row(configs: UserConfig, state: State) -> None:
 
 
 async def copy(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
+    if state.mode != Mode.QUERY or state.user_query:
         return
 
     row_idx = await async_call(partial(get_current_row_idx, state))
@@ -88,7 +88,7 @@ async def copy(configs: UserConfig, state: State) -> None:
 
 
 async def edit(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
+    if state.mode != Mode.QUERY or state.user_query:
         return
 
     edit_column, edit_value, row, column = await _get_current_cell_value(state)
@@ -119,7 +119,7 @@ async def edit(configs: UserConfig, state: State) -> None:
 
 
 async def filter_columns(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
+    if state.mode != Mode.QUERY or state.user_query:
         return
 
     filtered_columns = await async_call(partial(get_input, "Filter columns: ", ", ".join(state.filtered_columns)))
@@ -134,7 +134,7 @@ async def filter_columns(configs: UserConfig, state: State) -> None:
 
 
 async def order(configs: UserConfig, state: State, orientation: str) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
+    if state.mode != Mode.QUERY or state.user_query:
         return
 
     order_column, _, _, _ = await _get_current_cell_value(state)

@@ -31,9 +31,9 @@ async def toggle(configs: UserConfig, state: State) -> None:
         await show_databases(configs, state)
     elif state.mode == Mode.TABLE:
         await show_tables(configs, state)
-    elif state.mode == Mode.TABLE_CONTENT_RESULT:
+    elif state.mode == Mode.QUERY and not state.user_query:
         await show_table_data(configs, state, state.selected_table)
-    elif state.mode == Mode.INFO_RESULT:
+    elif state.mode == Mode.TABLE_INFO:
         await describe_table(configs, state, state.selected_table)
     else:
         # Fallback

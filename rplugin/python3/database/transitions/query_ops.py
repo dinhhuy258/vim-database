@@ -46,13 +46,13 @@ async def run_query(configs: UserConfig, state: State) -> None:
 
     state.selected_table = None
     state.table_data = None
-    state.mode = Mode.QUERY_RESULT
-    state.current_query = query
+    state.mode = Mode.QUERY
+    state.user_query = True
     await show_ascii_table(configs, query_result[0], query_result[1:])
 
 
 async def show_insert_query(configs: UserConfig, state: State) -> None:
-    if state.mode == Mode.TABLE_CONTENT_RESULT:
+    if state.mode == Mode.QUERY and not state.user_query:
 
         insert_query = await run_in_executor(
             partial(state.sql_client.get_template_insert_query, state.selected_database, state.selected_table))
@@ -68,7 +68,7 @@ async def show_insert_query(configs: UserConfig, state: State) -> None:
 
 
 async def show_update_query(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
+    if state.mode != Mode.QUERY or state.user_query:
         return
 
     headers, rows = state.table_data
@@ -104,7 +104,7 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
 
 
 async def show_copy_query(configs: UserConfig, state: State) -> None:
-    if state.mode != Mode.TABLE_CONTENT_RESULT:
+    if state.mode != Mode.QUERY or state.user_query:
         return
 
     headers, rows = state.table_data

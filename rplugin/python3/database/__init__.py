@@ -109,7 +109,7 @@ class DatabasePlugin(object):
             self._run(select_database)
         elif self._state.mode == Mode.TABLE and self._state.tables:
             self._run(select_table)
-        elif self._state.mode == Mode.INFO_RESULT:
+        elif self._state.mode == Mode.TABLE_INFO:
             self._run(show_table_data, self._state.selected_table)
 
     @function('VimDatabase_delete')
@@ -118,7 +118,7 @@ class DatabasePlugin(object):
             self._run(delete_connection)
         elif self._state.mode == Mode.TABLE and self._state.tables:
             self._run(delete_table)
-        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+        elif self._state.mode == Mode.QUERY and not self._state.user_query:
             self._run(delete_row)
 
     @function('VimDatabase_new')
@@ -150,14 +150,14 @@ class DatabasePlugin(object):
     def info_function(self, _: Sequence[Any]) -> None:
         if self._state.mode == Mode.TABLE and self._state.tables:
             self._run(describe_current_table)
-        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+        elif self._state.mode == Mode.QUERY and not self._state.user_query:
             self._run(describe_table, self._state.selected_table)
 
     @function('VimDatabase_filter')
     def filter_function(self, _: Sequence[Any]) -> None:
         if self._state.mode == Mode.TABLE:
             self._run(table_filter)
-        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+        elif self._state.mode == Mode.QUERY and not self._state.user_query:
             self._run(row_filter)
 
     @function('VimDatabase_clear_filter')
@@ -169,7 +169,7 @@ class DatabasePlugin(object):
 
         if self._state.mode == Mode.TABLE:
             self._run(show_tables)
-        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+        elif self._state.mode == Mode.QUERY and not self._state.user_query:
             self._run(select_table, self._state.selected_table)
 
     @function('VimDatabase_filter_columns')
@@ -186,7 +186,7 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_clear_filter_column')
     def clear_filter_column_function(self, _: Sequence[Any]) -> None:
-        if self._state.mode != Mode.TABLE_CONTENT_RESULT:
+        if self._state.mode != Mode.QUERY or self._state.user_query:
             return
 
         if self._state.filtered_columns:
@@ -199,9 +199,9 @@ class DatabasePlugin(object):
             self._run(show_databases)
         elif self._state.mode == Mode.TABLE and self._state.tables:
             self._run(show_tables)
-        elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
+        elif self._state.mode == Mode.QUERY and not self._state.user_query:
             self._run(show_table_data, self._state.selected_table)
-        elif self._state.mode == Mode.INFO_RESULT:
+        elif self._state.mode == Mode.TABLE_INFO:
             self._run(describe_table, self._state.selected_table)
 
     @function('VimDatabase_bigger')

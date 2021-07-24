@@ -31,8 +31,8 @@ async def show_table_data(configs: UserConfig, state: State, table: str) -> None
     rows = [] if table_empty else table_content[1:]
     state.selected_table = table
     state.table_data = (headers, rows)
-    state.mode = Mode.TABLE_CONTENT_RESULT
-    state.current_query = query
+    state.mode = Mode.QUERY
+    state.user_query = False
 
     if state.filtered_columns:
         filtered_idx = \

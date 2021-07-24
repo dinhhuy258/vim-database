@@ -48,7 +48,7 @@ async def describe_table(configs: UserConfig, state: State, table: str) -> None:
     if table_info is None:
         return
 
-    state.mode = Mode.INFO_RESULT
+    state.mode = Mode.TABLE_INFO
     await show_ascii_table(configs, table_info[0], table_info[1:])
 
 
