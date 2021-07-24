@@ -110,6 +110,12 @@ Default: `100`
 
 ## Features
 
+Navigate between connection, database, table mode:
+
+- `<Leader> c`: Go to connection mode
+- `<Leader> d`: Go to database mode
+- `<Leader> t`: Go to table mode
+
 ### Connection mode
 
 - New connection (press `c`)
@@ -152,3 +158,9 @@ Default: `100`
 - Show update row query (press `P`)
 
 ![](https://user-images.githubusercontent.com/17776979/126873221-ecc5081e-ecf2-4ca5-be0f-2b9c1658495a.gif)
+
+### Execute query mode
+
+- Execute the query (press `r`)
+
+![](https://user-images.githubusercontent.com/17776979/126873722-d9445e96-555b-4c5a-8eab-0f3495994c73.gif)
