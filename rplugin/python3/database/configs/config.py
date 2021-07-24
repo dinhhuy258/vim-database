@@ -18,7 +18,7 @@ _DEFAULT_DATABASE_MAPPINGS = {
     "edit": ["m"],
     "show_update_query": ["M"],
     "info": ["."],
-    "select": ["x"],
+    "select": ["s"],
     "order": ["o"],
     "order_desc": ["O"],
     "filter": ["f"],
