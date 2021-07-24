@@ -11,7 +11,7 @@ from ...views.database_window import (
     open_database_window,)
 
 
-async def show_result(configs: UserConfig, headers: list, rows: list) -> None:
+async def show_ascii_table(configs: UserConfig, headers: list, rows: list) -> None:
     window = await async_call(partial(open_database_window, configs))
 
     await async_call(partial(render, window, ascii_table(headers, rows)))

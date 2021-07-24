@@ -1,11 +1,11 @@
 from functools import partial
 
-from .shared.show_table_content import show_table_content
+from .shared.show_table_data import show_table_data
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
 from ..transitions.connection_ops import show_connections
 from ..transitions.database_ops import show_databases
-from ..transitions.table_ops import (show_tables, show_table_info)
+from ..transitions.table_ops import (show_tables, describe_table)
 from ..utils.log import log
 from ..utils.nvim import (
     async_call,)
@@ -32,9 +32,9 @@ async def toggle(configs: UserConfig, state: State) -> None:
     elif state.mode == Mode.TABLE:
         await show_tables(configs, state)
     elif state.mode == Mode.TABLE_CONTENT_RESULT:
-        await show_table_content(configs, state, state.selected_table)
+        await show_table_data(configs, state, state.selected_table)
     elif state.mode == Mode.INFO_RESULT:
-        await show_table_info(configs, state, state.selected_table)
+        await describe_table(configs, state, state.selected_table)
     else:
         # Fallback
         await show_connections(configs, state)

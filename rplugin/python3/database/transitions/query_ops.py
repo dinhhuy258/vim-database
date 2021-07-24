@@ -1,11 +1,11 @@
 import re
 from functools import partial
 
-from .shared.get_current_row import get_current_row
+from .shared.get_current_row_idx import get_current_row_idx
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
-from ..transitions.shared.show_result import show_result
+from ..transitions.shared.show_ascii_table import show_ascii_table
 from ..utils.log import log
 from ..utils.nvim import (
     async_call,
@@ -47,8 +47,8 @@ async def run_query(configs: UserConfig, state: State) -> None:
     state.selected_table = None
     state.table_data = None
     state.mode = Mode.QUERY_RESULT
-
-    await show_result(configs, query_result[0], query_result[1:])
+    state.current_query = query
+    await show_ascii_table(configs, query_result[0], query_result[1:])
 
 
 async def show_insert_query(configs: UserConfig, state: State) -> None:
@@ -72,7 +72,7 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         return
 
     headers, rows = state.table_data
-    row_idx = await async_call(partial(get_current_row, state))
+    row_idx = await async_call(partial(get_current_row_idx, state))
     if row_idx is None:
         return
 
@@ -108,7 +108,7 @@ async def show_copy_query(configs: UserConfig, state: State) -> None:
         return
 
     headers, rows = state.table_data
-    row_idx = await async_call(partial(get_current_row, state))
+    row_idx = await async_call(partial(get_current_row_idx, state))
     if row_idx is None:
         return
 

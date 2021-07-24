@@ -11,14 +11,14 @@ from .transitions.connection_ops import show_connections, select_connection, del
 from .transitions.database_ops import show_databases, select_database
 from .transitions.query_ops import run_query, show_update_query, show_copy_query, show_insert_query
 from .transitions.lsp_ops import lsp_config
-from .transitions.table_ops import list_tables_fzf, show_table_info, select_table, delete_table, describe_table, \
+from .transitions.table_ops import list_tables_fzf, describe_table, select_table, delete_table, describe_current_table, \
     show_tables, table_filter
 from .transitions.data_ops import (
     copy,
     edit,
     filter_columns,
     order,
-    show_table_content,
+    show_table_data,
     delete_row,
     row_filter,
 )
@@ -110,7 +110,7 @@ class DatabasePlugin(object):
         elif self._state.mode == Mode.TABLE and self._state.tables:
             self._run(select_table)
         elif self._state.mode == Mode.INFO_RESULT:
-            self._run(show_table_content, self._state.selected_table)
+            self._run(show_table_data, self._state.selected_table)
 
     @function('VimDatabase_delete')
     def delete_function(self, _: Sequence[Any]) -> None:
@@ -149,9 +149,9 @@ class DatabasePlugin(object):
     @function('VimDatabase_info')
     def info_function(self, _: Sequence[Any]) -> None:
         if self._state.mode == Mode.TABLE and self._state.tables:
-            self._run(describe_table)
+            self._run(describe_current_table)
         elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
-            self._run(show_table_info, self._state.selected_table)
+            self._run(describe_table, self._state.selected_table)
 
     @function('VimDatabase_filter')
     def filter_function(self, _: Sequence[Any]) -> None:
@@ -191,7 +191,7 @@ class DatabasePlugin(object):
 
         if self._state.filtered_columns:
             self._state.filtered_columns.clear()
-            self._run(show_table_content, self._state.selected_table)
+            self._run(show_table_data, self._state.selected_table)
 
     @function('VimDatabase_refresh')
     def refresh_function(self, _: Sequence[Any]) -> None:
@@ -200,9 +200,9 @@ class DatabasePlugin(object):
         elif self._state.mode == Mode.TABLE and self._state.tables:
             self._run(show_tables)
         elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
-            self._run(show_table_content, self._state.selected_table)
+            self._run(show_table_data, self._state.selected_table)
         elif self._state.mode == Mode.INFO_RESULT:
-            self._run(show_table_info, self._state.selected_table)
+            self._run(describe_table, self._state.selected_table)
 
     @function('VimDatabase_bigger')
     def bigger_function(self, _: Sequence[Any]) -> None:
@@ -218,7 +218,7 @@ class DatabasePlugin(object):
 
     @function('VimDatabase_select_table_fzf')
     def select_table_fzf_table(self, args: Sequence[Any]) -> None:
-        self._run(show_table_content, str(args[0]))
+        self._run(show_table_data, str(args[0]))
 
     @function('VimDatabaseQuery_quit')
     def quit_query_function(self, _: Sequence[Any]) -> None:

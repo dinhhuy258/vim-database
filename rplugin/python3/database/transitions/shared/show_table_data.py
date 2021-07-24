@@ -1,13 +1,13 @@
 from functools import partial
 
-from .show_result import show_result
+from .show_ascii_table import show_ascii_table
 from ...concurrents.executors import run_in_executor
 from ...configs.config import UserConfig
 from ...states.state import Mode, State
 from ...utils.log import log
 
 
-async def show_table_content(configs: UserConfig, state: State, table: str) -> None:
+async def show_table_data(configs: UserConfig, state: State, table: str) -> None:
     if not state.selected_connection:
         log.info("[vim-database] No connection found")
         return
@@ -32,6 +32,7 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
     state.selected_table = table
     state.table_data = (headers, rows)
     state.mode = Mode.TABLE_CONTENT_RESULT
+    state.current_query = query
 
     if state.filtered_columns:
         filtered_idx = \
@@ -40,4 +41,4 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
         rows = \
             list(map(lambda row: [column for column_idx, column in enumerate(row) if column_idx in filtered_idx], rows))
 
-    await show_result(configs, headers, rows)
+    await show_ascii_table(configs, headers, rows)

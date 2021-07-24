@@ -36,6 +36,7 @@ class State:
     filtered_columns: set[str]
     query_conditions: Optional[str]
     order: Optional[Tuple[str, str]]
+    current_query: Optional[str]
 
     def load_default_connection(self):
         if self.connections:
@@ -57,11 +58,12 @@ async def init_state() -> State:
                   sql_client=None,
                   tables=list(),
                   selected_table=None,
-                  result=None,
+                  table_data=None,
                   filtered_tables=None,
                   filtered_columns=set(),
                   query_conditions=None,
-                  order=None)
+                  order=None,
+                  current_query=None)
 
     def _get_connections() -> list:
         return list(get_connections())

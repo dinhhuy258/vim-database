@@ -4,9 +4,9 @@ from typing import Optional, Tuple
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
-from ..transitions.shared.get_current_row import get_current_row
-from ..transitions.shared.show_result import show_result
-from ..transitions.shared.show_table_content import show_table_content
+from ..transitions.shared.get_current_row_idx import get_current_row_idx
+from ..transitions.shared.show_ascii_table import show_ascii_table
+from ..transitions.shared.show_table_data import show_table_data
 from ..utils.log import log
 from ..utils.nvim import (
     async_call,
@@ -20,7 +20,7 @@ from ..views.database_window import (
 
 
 async def delete_row(configs: UserConfig, state: State) -> None:
-    row_idx = await async_call(partial(get_current_row, state))
+    row_idx = await async_call(partial(get_current_row_idx, state))
     if row_idx is None:
         return
     headers, rows = state.table_data
@@ -39,14 +39,14 @@ async def delete_row(configs: UserConfig, state: State) -> None:
     if delete_success:
         del rows[row_idx]
         state.table_data = (headers, rows)
-        await show_result(configs, headers, rows)
+        await show_ascii_table(configs, headers, rows)
 
 
 async def copy(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    row_idx = await async_call(partial(get_current_row, state))
+    row_idx = await async_call(partial(get_current_row_idx, state))
     if row_idx is None:
         return
 
@@ -84,7 +84,7 @@ async def copy(configs: UserConfig, state: State) -> None:
     if copy_result:
         rows.append(copy_row)
         state.table_data = (headers, rows)
-        await show_result(configs, headers, rows)
+        await show_ascii_table(configs, headers, rows)
 
 
 async def edit(configs: UserConfig, state: State) -> None:
@@ -115,7 +115,7 @@ async def edit(configs: UserConfig, state: State) -> None:
             data_headers, data_rows = state.table_data
             data_rows[row][column] = new_value
             state.table_data = (data_headers, data_rows)
-            await show_result(configs, data_headers, data_rows)
+            await show_ascii_table(configs, data_headers, data_rows)
 
 
 async def filter_columns(configs: UserConfig, state: State) -> None:
@@ -130,7 +130,7 @@ async def filter_columns(configs: UserConfig, state: State) -> None:
         for column in columns:
             state.filtered_columns.add(column.strip())
 
-    await show_table_content(configs, state, state.selected_table)
+    await show_table_data(configs, state, state.selected_table)
 
 
 async def order(configs: UserConfig, state: State, orientation: str) -> None:
@@ -143,7 +143,7 @@ async def order(configs: UserConfig, state: State, orientation: str) -> None:
 
     state.order = (order_column, orientation)
 
-    await show_table_content(configs, state, state.selected_table)
+    await show_table_data(configs, state, state.selected_table)
 
 
 async def row_filter(configs: UserConfig, state: State) -> None:
@@ -156,7 +156,7 @@ async def row_filter(configs: UserConfig, state: State) -> None:
     filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
     if filter_condition:
         state.query_conditions = filter_condition
-        await show_table_content(configs, state, state.selected_table)
+        await show_table_data(configs, state, state.selected_table)
 
 
 def _get_current_row_and_column(state: State) -> Tuple[Optional[int], Optional[int]]:
