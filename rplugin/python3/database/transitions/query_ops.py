@@ -1,8 +1,11 @@
 import re
 from functools import partial
 
+from .data_ops import show_table_data
+from .database_ops import show_databases
 from .shared.get_current_row_idx import get_current_row_idx
 from .shared.get_primary_key_value import get_primary_key_value
+from .table_ops import (show_tables)
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
@@ -36,6 +39,13 @@ async def run_query(configs: UserConfig, state: State) -> None:
 
     if len(query_result) < 2 and not query.lower().startswith("select "):
         log.info("[vim-database] Query executed successfully")
+
+        if state.mode == Mode.DATABASE and state.databases:
+            await show_databases(configs, state)
+        elif state.mode == Mode.TABLE and state.tables:
+            await show_tables(configs, state)
+        elif state.mode == Mode.QUERY and not state.user_query:
+            await show_table_data(configs, state, state.selected_table)
         return
     elif len(query_result) < 2:
         matches = re.search(r'(?<=from)(\s+\w+\b)', query, re.IGNORECASE)
