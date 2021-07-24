@@ -153,6 +153,7 @@ async def row_filter(configs: UserConfig, state: State) -> None:
     filter_condition = await async_call(get_filter_condition)
     filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
     if filter_condition:
+        state.current_page = 1
         state.query_conditions = filter_condition
         await show_table_data(configs, state, state.selected_table)
 
@@ -165,6 +166,8 @@ async def next_page(configs: UserConfig, state: State) -> None:
         state.current_page -= 1
         await show_table_data(configs, state, state.selected_table)
 
+    log.info("[vim-database] Page " + str(state.current_page))
+
 
 async def previous_page(configs: UserConfig, state: State) -> None:
     if state.current_page <= 1:
@@ -172,6 +175,8 @@ async def previous_page(configs: UserConfig, state: State) -> None:
 
     state.current_page -= 1
     await show_table_data(configs, state, state.selected_table)
+
+    log.info("[vim-database] Page " + str(state.current_page))
 
 
 def _get_current_row_and_column(state: State) -> Tuple[Optional[int], Optional[int]]:
