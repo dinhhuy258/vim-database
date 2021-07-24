@@ -8,11 +8,6 @@ from .concurrents.executor_service import ExecutorService
 from .configs.config import load_config
 from .states.state import init_state, Mode
 from .transitions.connection_ops import show_connections, select_connection, delete_connection, new_connection
-from .transitions.database_ops import show_databases, select_database
-from .transitions.query_ops import run_query, show_update_query, show_copy_query, show_insert_query
-from .transitions.lsp_ops import lsp_config
-from .transitions.table_ops import list_tables_fzf, describe_table, select_table, delete_table, describe_current_table, \
-    show_tables, table_filter
 from .transitions.data_ops import (
     copy,
     edit,
@@ -22,6 +17,11 @@ from .transitions.data_ops import (
     delete_row,
     row_filter,
 )
+from .transitions.database_ops import show_databases, select_database
+from .transitions.lsp_ops import lsp_config
+from .transitions.query_ops import run_query, show_update_query, show_copy_query, show_insert_query
+from .transitions.table_ops import (list_tables_fzf, describe_table, select_table, delete_table, describe_current_table,
+                                    show_tables, table_filter)
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
 from .utils.log import log, init_log

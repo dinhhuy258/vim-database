@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Optional, Tuple
 
+from .shared.get_primary_key_value import get_primary_key_value
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
@@ -25,7 +26,7 @@ async def delete_row(configs: UserConfig, state: State) -> None:
         return
     headers, rows = state.table_data
 
-    primary_key, primary_key_value = await _get_primary_key_value(state, row_idx)
+    primary_key, primary_key_value = await get_primary_key_value(state, row_idx)
     if primary_key is None:
         return
 
@@ -97,7 +98,7 @@ async def edit(configs: UserConfig, state: State) -> None:
 
     new_value = await async_call(partial(get_input, "Edit column " + edit_column + ": ", edit_value))
     if new_value and new_value != edit_value:
-        primary_key, primary_key_value = await _get_primary_key_value(state, row)
+        primary_key, primary_key_value = await get_primary_key_value(state, row)
         if primary_key is None:
             return
 
@@ -186,20 +187,3 @@ async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional
 
     data_headers, data_rows = state.table_data
     return data_headers[column], data_rows[row][column], row, column
-
-
-async def _get_primary_key_value(state: State, row: int) -> Tuple[Optional[str], Optional[str]]:
-    primary_key = await run_in_executor(
-        partial(state.sql_client.get_primary_key, state.selected_database, state.selected_table))
-    if primary_key is None:
-        log.info("[vim-database] No primary key found for table " + state.selected_table)
-        return None, None
-
-    headers, rows = state.table_data
-
-    for header_index, header in headers:
-        if header == primary_key:
-            return primary_key, rows[row][header_index]
-
-    # Not reachable
-    return None, None

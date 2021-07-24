@@ -34,7 +34,7 @@ async def list_tables_fzf(_: UserConfig, state: State) -> None:
 
 
 async def describe_current_table(configs: UserConfig, state: State) -> None:
-    table_idx = await async_call(partial(_get_table_index, state))
+    table_idx = await async_call(partial(get_table_idx, state))
     if table_idx is None:
         return
 
@@ -56,7 +56,7 @@ async def select_table(configs: UserConfig, state: State) -> None:
     state.query_conditions = None
     state.filtered_columns.clear()
     state.order = None
-    table_idx = await async_call(partial(_get_table_index, state))
+    table_idx = await async_call(partial(get_table_idx, state))
     if table_idx is None:
         return
     table = state.tables[table_idx]
@@ -68,7 +68,7 @@ async def table_filter(configs: UserConfig, state: State) -> None:
 
     def get_filtered_tables() -> Optional[str]:
         _filtered_tables = state.filtered_tables if state.filtered_tables is not None else ""
-        return get_input("New filter: ", _filtered_tables)
+        return get_input("New table filter: ", _filtered_tables)
 
     filtered_tables = await async_call(get_filtered_tables)
     if filtered_tables:
@@ -96,7 +96,7 @@ async def show_tables(configs: UserConfig, state: State) -> None:
 
 
 async def delete_table(configs: UserConfig, state: State) -> None:
-    table_index = await async_call(partial(_get_table_index, state))
+    table_index = await async_call(partial(get_table_idx, state))
     if table_index is None:
         return
 
@@ -111,7 +111,7 @@ async def delete_table(configs: UserConfig, state: State) -> None:
     await show_tables(configs, state)
 
 
-def _get_table_index(state: State) -> Optional[int]:
+def get_table_idx(state: State) -> Optional[int]:
     row = get_current_database_window_row()
     table_size = len(state.tables)
     # Minus 4 for header of the table

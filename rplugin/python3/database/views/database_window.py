@@ -1,6 +1,8 @@
+from typing import Optional, Tuple
+
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
-from typing import Optional, Tuple
+
 from ..configs.config import UserConfig
 from ..utils.nvim import (
     find_windows_in_tab,
@@ -18,49 +20,6 @@ from ..utils.nvim import (
 )
 
 _VIM_DATABASE_FILE_TYPE = 'VimDatabase'
-
-
-def _find_database_window_in_tab() -> Optional[Window]:
-    for window in find_windows_in_tab():
-        buffer: Buffer = get_buffer_in_window(window)
-        buffer_file_type = get_buffer_option(buffer, 'filetype')
-        if buffer_file_type == _VIM_DATABASE_FILE_TYPE:
-            return window
-    return None
-
-
-def _get_window_layout(window_layout: str) -> WindowLayout:
-    if window_layout == "left":
-        return WindowLayout.LEFT
-    if window_layout == "right":
-        return WindowLayout.RIGHT
-    if window_layout == "above":
-        return WindowLayout.ABOVE
-    if window_layout == "below":
-        return WindowLayout.BELOW
-
-    # Fallback layout
-    return WindowLayout.LEFT
-
-
-def _open_database_window(settings: UserConfig) -> Window:
-    buffer = create_buffer(
-        settings.mappings, {
-            'buftype': 'nofile',
-            'bufhidden': 'hide',
-            'swapfile': False,
-            'buflisted': False,
-            'modifiable': False,
-            'filetype': _VIM_DATABASE_FILE_TYPE,
-        })
-    window = create_window(settings.window_size, _get_window_layout(settings.window_layout), {
-        'list': False,
-        'number': False,
-        'relativenumber': False,
-        'wrap': False,
-    })
-    set_buffer_in_window(window, buffer)
-    return window
 
 
 def open_database_window(settings: UserConfig) -> Window:
@@ -114,3 +73,46 @@ def resize(direction: int) -> None:
         return
     width = get_window_width(window)
     set_window_width(window, width + direction)
+
+
+def _find_database_window_in_tab() -> Optional[Window]:
+    for window in find_windows_in_tab():
+        buffer: Buffer = get_buffer_in_window(window)
+        buffer_file_type = get_buffer_option(buffer, 'filetype')
+        if buffer_file_type == _VIM_DATABASE_FILE_TYPE:
+            return window
+    return None
+
+
+def _get_window_layout(window_layout: str) -> WindowLayout:
+    if window_layout == "left":
+        return WindowLayout.LEFT
+    if window_layout == "right":
+        return WindowLayout.RIGHT
+    if window_layout == "above":
+        return WindowLayout.ABOVE
+    if window_layout == "below":
+        return WindowLayout.BELOW
+
+    # Fallback layout
+    return WindowLayout.LEFT
+
+
+def _open_database_window(settings: UserConfig) -> Window:
+    buffer = create_buffer(
+        settings.mappings, {
+            'buftype': 'nofile',
+            'bufhidden': 'hide',
+            'swapfile': False,
+            'buflisted': False,
+            'modifiable': False,
+            'filetype': _VIM_DATABASE_FILE_TYPE,
+        })
+    window = create_window(settings.window_size, _get_window_layout(settings.window_layout), {
+        'list': False,
+        'number': False,
+        'relativenumber': False,
+        'wrap': False,
+    })
+    set_buffer_in_window(window, buffer)
+    return window

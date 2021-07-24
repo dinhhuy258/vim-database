@@ -2,6 +2,7 @@ import re
 from functools import partial
 
 from .shared.get_current_row_idx import get_current_row_idx
+from .shared.get_primary_key_value import get_primary_key_value
 from ..concurrents.executors import run_in_executor
 from ..configs.config import UserConfig
 from ..states.state import Mode, State
@@ -77,18 +78,9 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         return
 
     row = rows[row_idx]
-
-    primary_key = await run_in_executor(
-        partial(state.sql_client.get_primary_key, state.selected_database, state.selected_table))
+    primary_key, primary_key_value = await get_primary_key_value(state, row)
     if primary_key is None:
-        log.info("[vim-database] No primary key found for table " + state.selected_table)
         return
-
-    primary_key_index = -1
-    for header_index, header in enumerate(headers):
-        if header == primary_key:
-            primary_key_index = header_index
-            break
 
     update_query = ["UPDATE " + state.selected_table + " SET "]
     num_columns = len(headers)
@@ -98,7 +90,7 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         if column != primary_key:
             update_query.append("\t" + column + " = \'" + column_value + "\',")
     update_query[-1] = update_query[-1][:-1]
-    update_query.append("WHERE " + primary_key + " = \'" + row[primary_key_index] + "\'")
+    update_query.append("WHERE " + primary_key + " = \'" + primary_key_value + "\'")
     query_window = await async_call(partial(open_query_window, configs))
     await async_call(partial(render, query_window, update_query))
 

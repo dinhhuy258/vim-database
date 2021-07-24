@@ -28,7 +28,7 @@ def ascii_table(headers: list, rows: list) -> list:
 
     if len(rows) == 0:
         pattern = "   ".join(formats)
-        lines.append("| " + pattern % tuple(" " for t in headers) + " |")
+        lines.append("| " + pattern % tuple(" " for _ in headers) + " |")
 
     lines.append(separator)
 

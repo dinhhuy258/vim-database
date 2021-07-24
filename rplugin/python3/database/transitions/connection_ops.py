@@ -31,11 +31,13 @@ async def new_connection(settings: UserConfig, state: State) -> None:
             state.selected_database = connection.database
             state.sql_client = SqlClientFactory.create(state.selected_connection)
 
-        # Update connections table
+        # Refresh connections table
         is_window_open = await async_call(is_database_window_open)
         if is_window_open and state.mode == Mode.CONNECTION:
             await show_connections(settings, state)
+
         log.info('[vim-database] Connection created')
+
     return None
 
 
@@ -43,36 +45,36 @@ async def show_connections(settings: UserConfig, state: State) -> None:
     window = await async_call(partial(open_database_window, settings))
     state.mode = Mode.CONNECTION
 
-    connection_headers, connection_rows, selected_index = _get_connection_datas_from_state(state)
+    connection_headers, connection_rows, selected_idx = _get_connections_from_state(state)
     await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
+    await async_call(partial(set_cursor, window, (selected_idx + 4, 0)))
 
 
 async def select_connection(settings: UserConfig, state: State) -> None:
     if state.mode != Mode.CONNECTION or not state.connections:
         return
 
-    connection_index = await async_call(partial(_get_connection_index, state))
-    if connection_index is None:
+    connection_idx = await async_call(partial(_get_connection_idx, state))
+    if connection_idx is None:
         return
 
-    state.selected_connection = state.connections[connection_index]
+    state.selected_connection = state.connections[connection_idx]
     state.selected_database = state.selected_connection.database
     state.sql_client = SqlClientFactory.create(state.selected_connection)
 
     # Update connections table
     window = await async_call(partial(open_database_window, settings))
-    connection_headers, connection_rows, selected_index = _get_connection_datas_from_state(state)
+    connection_headers, connection_rows, selected_idx = _get_connections_from_state(state)
     await async_call(partial(render, window, ascii_table(connection_headers, connection_rows)))
-    await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
+    await async_call(partial(set_cursor, window, (selected_idx + 4, 0)))
 
 
 async def delete_connection(settings: UserConfig, state: State) -> None:
-    connection_index = await async_call(partial(_get_connection_index, state))
-    if connection_index is None:
+    connection_idx = await async_call(partial(_get_connection_idx, state))
+    if connection_idx is None:
         return
 
-    connection = state.connections[connection_index]
+    connection = state.connections[connection_idx]
 
     ans = await async_call(partial(confirm, "Do you want to delete connection " + connection.name + "?"))
     if not ans:
@@ -80,7 +82,7 @@ async def delete_connection(settings: UserConfig, state: State) -> None:
 
     await run_in_executor(partial(remove_connection, connection))
 
-    del state.connections[connection_index]
+    del state.connections[connection_idx]
     if connection.name == state.selected_connection.name:
         state.load_default_connection()
 
@@ -88,13 +90,13 @@ async def delete_connection(settings: UserConfig, state: State) -> None:
     await show_connections(settings, state)
 
 
-def _get_connection_datas_from_state(state: State) -> Tuple[list, list, int]:
-    connection_datas = []
-    selected_index = 0
+def _get_connections_from_state(state: State) -> Tuple[list, list, int]:
+    connections = []
+    selected_idx = 0
     for index, connection in enumerate(state.connections):
         if state.selected_connection.name == connection.name:
-            selected_index = index
-        connection_datas.append([
+            selected_idx = index
+        connections.append([
             connection.name + " (*)" if state.selected_connection.name == connection.name else connection.name,
             connection.connection_type.to_string(), "" if connection.host is None else connection.host,
             "" if connection.port is None else connection.port,
@@ -102,18 +104,18 @@ def _get_connection_datas_from_state(state: State) -> Tuple[list, list, int]:
             "" if connection.password is None else connection.password, connection.database
         ])
 
-    return ["Name", "Type", "Host", "Port", "Username", "Password", "Database"], connection_datas, selected_index
+    return ["Name", "Type", "Host", "Port", "Username", "Password", "Database"], connections, selected_idx
 
 
-def _get_connection_index(state: State) -> Optional[int]:
+def _get_connection_idx(state: State) -> Optional[int]:
     row = get_current_database_window_row()
     connections_size = len(state.connections)
     # Minus 4 for header of the table
-    connection_index = row - 4
-    if connection_index < 0 or connection_index >= connections_size:
+    connection_idx = row - 4
+    if connection_idx < 0 or connection_idx >= connections_size:
         return None
 
-    return connection_index
+    return connection_idx
 
 
 def _new_sqlite_connection() -> Optional[Connection]:

@@ -1,5 +1,6 @@
-from pynvim import Nvim
 from logging import Formatter, Handler, LogRecord, ERROR, INFO, getLogger
+
+from pynvim import Nvim
 
 _LOGGER_NAME = 'VimDatabase'
 

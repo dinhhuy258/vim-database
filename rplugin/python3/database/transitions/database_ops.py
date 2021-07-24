@@ -28,7 +28,7 @@ async def show_databases(configs: UserConfig, state: State) -> None:
 
     state.databases = await run_in_executor(partial(state.sql_client.get_databases, state.selected_connection))
 
-    database_headers, database_rows, selected_index = _get_database_datas_from_state(state)
+    database_headers, database_rows, selected_index = _get_databases_from_state(state)
     await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
@@ -46,7 +46,7 @@ async def select_database(configs: UserConfig, state: State) -> None:
 
     # Update databases table
     window = await async_call(partial(open_database_window, configs))
-    database_headers, database_rows, selected_index = _get_database_datas_from_state(state)
+    database_headers, database_rows, selected_index = _get_databases_from_state(state)
     await async_call(partial(render, window, ascii_table(database_headers, database_rows)))
     await async_call(partial(set_cursor, window, (selected_index + 4, 0)))
 
@@ -64,14 +64,14 @@ def _get_database_index(state: State) -> Optional[int]:
     return database_index
 
 
-def _get_database_datas_from_state(state: State) -> Tuple[list, list, int]:
-    database_datas = []
-    selected_index = 0
+def _get_databases_from_state(state: State) -> Tuple[list, list, int]:
+    databases = []
+    selected_idx = 0
     for index, database in enumerate(state.databases):
         if state.selected_database == database:
-            database_datas.append([database + " (*)"])
-            selected_index = index
+            databases.append([database + " (*)"])
+            selected_idx = index
         else:
-            database_datas.append([database])
+            databases.append([database])
 
-    return ["Database"], database_datas, selected_index
+    return ["Database"], databases, selected_idx

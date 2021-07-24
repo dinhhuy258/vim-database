@@ -1,10 +1,5 @@
-from pynvim import Nvim
-from pynvim.api.common import NvimError
-from pynvim.api.window import Window
-from pynvim.api.buffer import Buffer
-from pynvim.api.tabpage import Tabpage
-from enum import Enum
 from asyncio import Future
+from enum import Enum
 from typing import (
     Any,
     Awaitable,
@@ -12,10 +7,16 @@ from typing import (
     TypeVar,
     Iterator,
     Tuple,
-    Sequence,
     Dict,
     Sequence,
+    Optional,
 )
+
+from pynvim import Nvim
+from pynvim.api.buffer import Buffer
+from pynvim.api.common import NvimError
+from pynvim.api.tabpage import Tabpage
+from pynvim.api.window import Window
 
 T = TypeVar("T")
 
@@ -25,16 +26,6 @@ class WindowLayout(Enum):
     RIGHT = 2
     ABOVE = 3
     BELOW = 4
-
-
-def _buf_set_lines(buffer: Buffer, lines: list) -> Iterator[Tuple[str, Sequence[Any]]]:
-    modifiable = get_buffer_option(buffer, "modifiable")
-    if not modifiable:
-        yield "nvim_buf_set_option", (buffer, "modifiable", True)
-
-    yield "nvim_buf_set_lines", (buffer, 0, -1, True, [line.rstrip('\n') for line in lines])
-    if not modifiable:
-        yield "nvim_buf_set_option", (buffer, "modifiable", False)
 
 
 def init_nvim(nvim: Nvim) -> None:
@@ -74,9 +65,9 @@ def execute(command: str) -> Any:
 
 def find_windows_in_tab() -> Iterator[Window]:
 
-    def key_by(window: Window) -> Tuple[int, int]:
-        row, col = _nvim.api.win_get_position(window)
-        return (col, row)
+    def key_by(win: Window) -> Tuple[int, int]:
+        row, col = _nvim.api.win_get_position(win)
+        return col, row
 
     tab: Tabpage = _nvim.api.get_current_tabpage()
     windows: Sequence[Window] = _nvim.api.tabpage_list_wins(tab)
@@ -86,7 +77,7 @@ def find_windows_in_tab() -> Iterator[Window]:
             yield window
 
 
-def create_buffer(keymaps: Dict[str, Sequence[str]] = dict(), options: Dict[str, Any] = dict()) -> Buffer:
+def create_buffer(keymaps: Dict[str, Sequence[str]] = dict, options: Dict[str, Any] = dict) -> Buffer:
     mapping_options = {"noremap": True, "silent": True, "nowait": True}
     buffer: Buffer = _nvim.api.create_buf(False, True)
 
@@ -104,11 +95,11 @@ def set_buffer_var(buffer_handle: int, var_name: str, var_value: Any) -> None:
     _nvim.funcs.setbufvar(buffer_handle, var_name, var_value)
 
 
-def get_buffer_var(buffer_handle: int, var_name: str, default_value: Any) -> None:
-    _nvim.funcs.getbufvar(buffer_handle, var_name, default_value)
+def get_buffer_var(buffer_handle: int, var_name: str, default_value: Any) -> int:
+    return _nvim.funcs.getbufvar(buffer_handle, var_name, default_value)
 
 
-def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dict()) -> Window:
+def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dict) -> Window:
     split_right = _nvim.api.get_option("splitright")
     split_below = _nvim.api.get_option("splitbelow")
 
@@ -141,7 +132,7 @@ def create_window(size: int, layout: WindowLayout, options: Dict[str, Any] = dic
     return window
 
 
-def get_window_info(winid: int) -> list():
+def get_window_info(winid: int) -> list:
     return _nvim.funcs.getwininfo(winid)
 
 
@@ -193,10 +184,6 @@ def get_input(question: str, default: str = "") -> str:
     return _nvim.funcs.input(question, default)
 
 
-def get_buffer_in_window(window: Window) -> Buffer:
-    return _nvim.api.win_get_buf(window)
-
-
 def get_global_var(name: str, default_value: Any) -> Any:
     try:
         return _nvim.api.get_var(name)
@@ -220,7 +207,19 @@ def set_cursor(window: Window, cursor: Tuple[int, int]) -> None:
     _nvim.api.win_set_cursor(window, cursor)
 
 
-def render(window: Window, lines: list) -> None:
+def render(window: Window, lines: list, modifiable: Optional[bool] = None) -> None:
     buffer: Buffer = get_buffer_in_window(window)
-    instruction = _buf_set_lines(buffer, lines)
+    instruction = _buf_set_lines(buffer, lines, modifiable)
     call_atomic(*instruction)
+
+
+def _buf_set_lines(buffer: Buffer,
+                   lines: list,
+                   modifiable: Optional[bool] = None) -> Iterator[Tuple[str, Sequence[Any]]]:
+    modifiable = modifiable if modifiable is not None else get_buffer_option(buffer, "modifiable")
+    if not modifiable:
+        yield "nvim_buf_set_option", (buffer, "modifiable", True)
+
+    yield "nvim_buf_set_lines", (buffer, 0, -1, True, [line.rstrip('\n') for line in lines])
+    if not modifiable:
+        yield "nvim_buf_set_option", (buffer, "modifiable", False)

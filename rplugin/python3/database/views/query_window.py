@@ -1,9 +1,10 @@
+from typing import Optional
+
 from pynvim.api.buffer import Buffer
 from pynvim.api.window import Window
-from typing import Tuple, Iterator, Sequence, Any, Optional
-from ..utils.strings import string_compose
+
+from ..configs.config import UserConfig
 from ..utils.nvim import (
-    call_atomic,
     execute,
     get_option,
     create_buffer,
@@ -16,49 +17,13 @@ from ..utils.nvim import (
     get_buffer_in_window,
     close_window,
     get_buffer_content,
+    render,
 )
-from ..configs.config import UserConfig
+from ..utils.strings import string_compose
 
 _VIM_DATABASE_QUERY_TITLE = "[vim-database] Query"
 _VIM_DATABASE_QUERY_BORDER_CHARS = ['─', '│', '─', '│', '┌', '┐', '┘', '└']
-_query_buffer: Buffer = None
-
-
-def _find_window_by_winid(winid: int) -> Optional[Window]:
-    for window in find_windows_in_tab():
-        if window.handle == winid:
-            return window
-
-    return None
-
-
-def _find_query_window() -> Optional[Window]:
-    if _query_buffer is None:
-        return None
-
-    for window in find_windows_in_tab():
-        buffer: Buffer = get_buffer_in_window(window)
-        if buffer.handle == _query_buffer.handle:
-            return window
-
-    return None
-
-
-def _find_query_buffer() -> Optional[Buffer]:
-    query_window = _find_query_window()
-    if query_window is not None:
-        return query_window.buffer
-
-    return None
-
-
-def _buf_set_lines(buffer: Buffer, lines: list, modifiable: bool) -> Iterator[Tuple[str, Sequence[Any]]]:
-    if not modifiable:
-        yield "nvim_buf_set_option", (buffer, "modifiable", True)
-
-    yield "nvim_buf_set_lines", (buffer, 0, -1, True, [line.rstrip('\n') for line in lines])
-    if not modifiable:
-        yield "nvim_buf_set_option", (buffer, "modifiable", False)
+_query_buffer: Optional[Buffer] = None
 
 
 def close_query_window() -> None:
@@ -145,8 +110,7 @@ def open_query_window(settings: UserConfig) -> Optional[Window]:
     set_window_option(border_window, "cursorcolumn", False)
     set_window_option(border_window, "colorcolumn", "")
 
-    instruction = _buf_set_lines(border_buffer, border_lines, False)
-    call_atomic(*instruction)
+    render(border_window, border_lines, False)
 
     return window
 
@@ -166,3 +130,31 @@ def is_query_window_opened() -> bool:
     query_window = _find_query_window()
 
     return query_window is not None
+
+
+def _find_window_by_winid(winid: int) -> Optional[Window]:
+    for window in find_windows_in_tab():
+        if window.handle == winid:
+            return window
+
+    return None
+
+
+def _find_query_window() -> Optional[Window]:
+    if _query_buffer is None:
+        return None
+
+    for window in find_windows_in_tab():
+        buffer: Buffer = get_buffer_in_window(window)
+        if buffer.handle == _query_buffer.handle:
+            return window
+
+    return None
+
+
+def _find_query_buffer() -> Optional[Buffer]:
+    query_window = _find_query_window()
+    if query_window is not None:
+        return query_window.buffer
+
+    return None
