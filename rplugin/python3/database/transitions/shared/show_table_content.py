@@ -24,15 +24,13 @@ async def show_table_content(configs: UserConfig, state: State, table: str) -> N
     if table_content is None:
         # Error
         state.query_conditions = None
-        state.filtered_columns.clear()
-        state.order = None
         return
 
     table_empty = len(table_content) == 0
     headers = [table] if table_empty else table_content[0]
     rows = [] if table_empty else table_content[1:]
     state.selected_table = table
-    state.result = (headers, rows)
+    state.table_data = (headers, rows)
     state.mode = Mode.TABLE_CONTENT_RESULT
 
     if state.filtered_columns:

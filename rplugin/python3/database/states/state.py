@@ -31,7 +31,7 @@ class State:
     selected_database: Optional[str]
     tables: list
     selected_table: Optional[str]
-    result: Optional[Tuple[list, list]]
+    table_data: Optional[Tuple[list, list]]
     filtered_tables: Optional[str]
     filtered_columns: set[str]
     query_conditions: Optional[str]

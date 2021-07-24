@@ -45,7 +45,7 @@ async def run_query(configs: UserConfig, state: State) -> None:
         query_result = [[table_name]]
 
     state.selected_table = None
-    state.result = None
+    state.table_data = None
     state.mode = Mode.QUERY_RESULT
 
     await show_result(configs, query_result[0], query_result[1:])
@@ -71,14 +71,12 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    result_headers, result_rows = state.result
-    if len(result_headers) <= 1:
+    headers, rows = state.table_data
+    row_idx = await async_call(partial(get_current_row, state))
+    if row_idx is None:
         return
 
-    result_index = await async_call(partial(get_current_row, state))
-    if result_index is None:
-        return
-    result_row = result_rows[result_index]
+    row = rows[row_idx]
 
     primary_key = await run_in_executor(
         partial(state.sql_client.get_primary_key, state.selected_database, state.selected_table))
@@ -87,20 +85,20 @@ async def show_update_query(configs: UserConfig, state: State) -> None:
         return
 
     primary_key_index = -1
-    for header_index, header in enumerate(result_headers):
+    for header_index, header in enumerate(headers):
         if header == primary_key:
             primary_key_index = header_index
             break
 
     update_query = ["UPDATE " + state.selected_table + " SET "]
-    num_columns = len(result_headers)
+    num_columns = len(headers)
     for i in range(num_columns):
-        column = result_headers[i]
-        column_value = result_row[i]
+        column = headers[i]
+        column_value = row[i]
         if column != primary_key:
             update_query.append("\t" + column + " = \'" + column_value + "\',")
     update_query[-1] = update_query[-1][:-1]
-    update_query.append("WHERE " + primary_key + " = \'" + result_row[primary_key_index] + "\'")
+    update_query.append("WHERE " + primary_key + " = \'" + row[primary_key_index] + "\'")
     query_window = await async_call(partial(open_query_window, configs))
     await async_call(partial(render, query_window, update_query))
 
@@ -109,26 +107,23 @@ async def show_copy_query(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    result_headers, result_rows = state.result
-    if len(result_headers) <= 1:
+    headers, rows = state.table_data
+    row_idx = await async_call(partial(get_current_row, state))
+    if row_idx is None:
         return
 
-    result_index = await async_call(partial(get_current_row, state))
-    if result_index is None:
-        return
-    result_row = result_rows[result_index]
-
+    row = rows[row_idx]
     insert_query = ["INSERT INTO " + state.selected_table + " ("]
-    num_columns = len(result_headers)
+    num_columns = len(headers)
     for i in range(num_columns):
-        column_name = result_headers[i]
+        column_name = headers[i]
         insert_query.append("\t" + column_name)
         if i != num_columns - 1:
             insert_query[-1] += ","
 
     insert_query.append(") VALUES (")
     for i in range(num_columns):
-        column_value = result_row[i]
+        column_value = row[i]
         insert_query.append("\t" + (column_value if column_value == 'NULL' else ("\'" + column_value + "\'")))
         if i != num_columns - 1:
             insert_query[-1] += ","

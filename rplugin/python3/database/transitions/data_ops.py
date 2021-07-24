@@ -20,12 +20,12 @@ from ..views.database_window import (
 
 
 async def delete_row(configs: UserConfig, state: State) -> None:
-    result_index = await async_call(partial(get_current_row, state))
-    if result_index is None:
+    row_idx = await async_call(partial(get_current_row, state))
+    if row_idx is None:
         return
-    result_headers, result_rows = state.result
+    headers, rows = state.table_data
 
-    primary_key, primary_key_value = await _get_primary_key_value(state, result_index)
+    primary_key, primary_key_value = await _get_primary_key_value(state, row_idx)
     if primary_key is None:
         return
 
@@ -37,28 +37,29 @@ async def delete_row(configs: UserConfig, state: State) -> None:
     delete_success = await run_in_executor(state.sql_client.delete, state.selected_database, state.selected_table,
                                            (primary_key, "\'" + primary_key_value + "\'"))
     if delete_success:
-        del result_rows[result_index]
-        state.result = (result_headers, result_rows)
-        await show_result(configs, result_headers, result_rows)
+        del rows[row_idx]
+        state.table_data = (headers, rows)
+        await show_result(configs, headers, rows)
 
 
 async def copy(configs: UserConfig, state: State) -> None:
     if state.mode != Mode.TABLE_CONTENT_RESULT:
         return
 
-    result_index = await async_call(partial(get_current_row, state))
-    if result_index is None:
+    row_idx = await async_call(partial(get_current_row, state))
+    if row_idx is None:
         return
-    result_headers, result_rows = state.result
-    copy_row = result_rows[result_index][:]
+
+    headers, rows = state.table_data
+    copy_row = rows[row_idx][:]
 
     ans = await async_call(partial(confirm, "Do you want to copy this row?"))
     if not ans:
         return
 
     header_map = dict()
-    for header_index, header in enumerate(result_headers):
-        header_map[header] = header_index
+    for header_idx, header in enumerate(headers):
+        header_map[header] = header_idx
 
     unique_column_names = await run_in_executor(
         partial(state.sql_client.get_unique_columns, state.selected_database, state.selected_table))
@@ -81,9 +82,9 @@ async def copy(configs: UserConfig, state: State) -> None:
         partial(state.sql_client.copy, state.selected_database, state.selected_table, unique_columns,
                 new_unique_column_values))
     if copy_result:
-        result_rows.append(copy_row)
-        state.result = (result_headers, result_rows)
-        await show_result(configs, result_headers, result_rows)
+        rows.append(copy_row)
+        state.table_data = (headers, rows)
+        await show_result(configs, headers, rows)
 
 
 async def edit(configs: UserConfig, state: State) -> None:
@@ -111,9 +112,9 @@ async def edit(configs: UserConfig, state: State) -> None:
             partial(state.sql_client.update, state.selected_database, state.selected_table,
                     (edit_column, "\'" + new_value + "\'"), (primary_key, "\'" + primary_key_value + "\'")))
         if update_success:
-            data_headers, data_rows = state.result
+            data_headers, data_rows = state.table_data
             data_rows[row][column] = new_value
-            state.result = (data_headers, data_rows)
+            state.table_data = (data_headers, data_rows)
             await show_result(configs, data_headers, data_rows)
 
 
@@ -145,11 +146,11 @@ async def order(configs: UserConfig, state: State, orientation: str) -> None:
     await show_table_content(configs, state, state.selected_table)
 
 
-async def result_filter(configs: UserConfig, state: State) -> None:
+async def row_filter(configs: UserConfig, state: State) -> None:
 
     def get_filter_condition() -> Optional[str]:
         condition = state.query_conditions if state.query_conditions is not None else ""
-        return get_input("New condition: ", condition)
+        return get_input("New query conditions: ", condition)
 
     filter_condition = await async_call(get_filter_condition)
     filter_condition = filter_condition if filter_condition is None else filter_condition.strip()
@@ -161,21 +162,21 @@ async def result_filter(configs: UserConfig, state: State) -> None:
 def _get_current_row_and_column(state: State) -> Tuple[Optional[int], Optional[int]]:
     row_cursor, column_cursor = get_current_database_window_cursor()
 
-    _, data_rows = state.result
-    result_size = len(data_rows)
+    _, rows = state.table_data
+    row_size = len(rows)
 
     # Minus 4 for header of the table
-    row = row_cursor - 4
+    row_idx = row_cursor - 4
     line = get_current_database_window_line()
-    if row < 0 or row >= result_size or line is None or line[column_cursor] == '|':
+    if row_idx < 0 or row_idx >= row_size or line is None or line[column_cursor] == '|':
         return None, None
 
-    column = 0
+    column_idx = 0
     for i in range(column_cursor):
         if line[i] == '|':
-            column += 1
+            column_idx += 1
 
-    return row, column - 1
+    return row_idx, column_idx - 1
 
 
 async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional[str], Optional[int], Optional[int]]:
@@ -183,7 +184,7 @@ async def _get_current_cell_value(state: State) -> Tuple[Optional[str], Optional
     if row is None:
         return None, None, None, None
 
-    data_headers, data_rows = state.result
+    data_headers, data_rows = state.table_data
     return data_headers[column], data_rows[row][column], row, column
 
 
@@ -194,11 +195,11 @@ async def _get_primary_key_value(state: State, row: int) -> Tuple[Optional[str],
         log.info("[vim-database] No primary key found for table " + state.selected_table)
         return None, None
 
-    result_headers, result_rows = state.result
+    headers, rows = state.table_data
 
-    for header_index, header in result_headers:
+    for header_index, header in headers:
         if header == primary_key:
-            return primary_key, result_rows[row][header_index]
+            return primary_key, rows[row][header_index]
 
     # Not reachable
     return None, None

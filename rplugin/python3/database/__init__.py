@@ -20,7 +20,7 @@ from .transitions.data_ops import (
     order,
     show_table_content,
     delete_row,
-    result_filter,
+    row_filter,
 )
 from .transitions.view_ops import (resize_database, close_query, show_query, toggle_query, close, toggle)
 from .utils.files import create_folder_if_not_present
@@ -158,7 +158,7 @@ class DatabasePlugin(object):
         if self._state.mode == Mode.TABLE:
             self._run(table_filter)
         elif self._state.mode == Mode.TABLE_CONTENT_RESULT:
-            self._run(result_filter)
+            self._run(row_filter)
 
     @function('VimDatabase_clear_filter')
     def clear_filter_function(self, _: Sequence[Any]) -> None:
