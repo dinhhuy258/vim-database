@@ -69,6 +69,14 @@ nnoremap <silent> <F4> :VDToggleQuery<CR>
 nmap <silent> <Leader>fd :VimDatabaseListTablesFzf<CR>
 ```
 
+If you see an error `Not and editor command: VDToggleDatabase` you need to run `:UpdateRemotePlugins`. If the error still occurs, run the following command
+
+```sh
+pip install --user --upgrade pynvim
+```
+
+then restart nvim and re-run `:UpdateRemotePlugins` and finally restart nvim, `:VDToggleDatabase` will exist
+
 ## Key bindings
 
 Check the default key binding [here](https://github.com/dinhhuy258/vim-database/blob/master/rplugin/python3/database/configs/config.py)
