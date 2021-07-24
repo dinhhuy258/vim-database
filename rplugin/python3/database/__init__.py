@@ -170,12 +170,12 @@ class DatabasePlugin(object):
     def clear_filter_function(self, _: Sequence[Any]) -> None:
         self._state.filtered_tables = None
         self._state.query_conditions = None
-        log.info("[vim-database] All filters were cleared")
+        log.info("[vim-database] Filter was cleared")
 
         if self._state.mode == Mode.TABLE:
             self._run(show_tables)
         elif self._state.mode == Mode.QUERY and not self._state.user_query:
-            self._run(select_table, self._state.selected_table)
+            self._run(show_table_data, self._state.selected_table)
 
     @function('VimDatabase_filter_columns')
     def filter_columns_function(self, _: Sequence[Any]) -> None:
@@ -205,6 +205,7 @@ class DatabasePlugin(object):
             return
 
         if self._state.filtered_columns:
+            log.info("[vim-database] Filter columns was cleared")
             self._state.filtered_columns.clear()
             self._run(show_table_data, self._state.selected_table)
 
