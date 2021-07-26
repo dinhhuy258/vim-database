@@ -19,6 +19,8 @@ The supported databases at the moment:
 
 - Neovim (vim is not supported)
 - Python 3.7
+- pynvim
+- pyyaml
 - sqlite3
 - psql
 - mysql
@@ -29,6 +31,12 @@ Install pynvim
 
 ```sh
 pip3 install pynvim
+```
+
+Install pyyaml
+
+```sh
+pip3 install pyyaml
 ```
 
 Install Neovim plugin
