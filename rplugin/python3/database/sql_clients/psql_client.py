@@ -11,7 +11,7 @@ class PostgreSqlClient(SqlClient):
     def __init__(self, connection: Connection):
         SqlClient.__init__(self, connection)
 
-    def _run_query(self, query: str, options: list = list) -> CommandResult:
+    def _run_query(self, query: str, options: list = []) -> CommandResult:
         return self.run_command([
             "psql",
             "--host=" + self.connection.host,
