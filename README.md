@@ -18,7 +18,7 @@ The supported databases at the moment:
 ## Requirements
 
 - Neovim (vim is not supported)
-- Python 3.7
+- Python 3.9
 - pynvim
 - pyyaml
 - sqlite3
