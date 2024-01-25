@@ -42,11 +42,8 @@ endfunction
 command! VimDatabaseListTablesFzf call VimDatabase_list_tables_fzf()
 
 if get(g:, 'huy_duong_workspace', 0) == 1
-  nnoremap <silent> <F3> :VDToggleDatabase<CR>
-  nnoremap <silent> <F4> :VDToggleQuery<CR>
-  nnoremap <silent> <Leader>db :VDToggleDatabase<CR>
-  nnoremap <silent> <Leader>dr :VDToggleQuery<CR>
-  nmap <silent> <Leader>fd :VimDatabaseListTablesFzf<CR>
+  nnoremap <silent> dbb :VDToggleDatabase<CR>
+  nnoremap <silent> dbr :VDToggleQuery<CR>
 
   let g:vim_database_window_layout = "below"
   let g:vim_database_window_size = 25
